@@ -29,7 +29,7 @@ export default function AdminPage() {
     { id: 2, name: 'John Smith', email: 'john@example.com', role: 'supplier', status: 'active', joined: '2024-02-20' },
     { id: 3, name: 'Mike Wilson', email: 'mike@example.com', role: 'customer', status: 'inactive', joined: '2023-12-10' },
     { id: 4, name: 'Emma Davis', email: 'emma@example.com', role: 'supplier', status: 'active', joined: '2024-03-05' },
-    { id: 5, name: 'James Brown', email: '@example.com', role: 'admin', status: 'active', joined: '2024-01-30' },
+    { id: 5, name: 'James Brown', email: 'admin@example.com', role: 'admin', status: 'active', joined: '2024-01-30' },
   ];
 
   const products = [
