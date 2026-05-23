@@ -7,6 +7,7 @@ import { RootState } from '@/lib/store';
 import { toggleCart } from '@/lib/slices/cartSlice';
 import { FiSearch, FiShoppingCart, FiMenu, FiX, FiHeart, FiUser } from 'react-icons/fi';
 import { motion } from 'framer-motion';
+import { ThemeToggle } from './ThemeToggle';
 
 export function Navbar() {
   const dispatch = useDispatch();
@@ -17,27 +18,30 @@ export function Navbar() {
   const wishlist = useSelector((state: RootState) => state.wishlist);
 
   return (
-    <nav className="sticky top-0 z-50 bg-white border-b border-border shadow-sm">
+    <nav className="sticky top-0 z-50 bg-card border-b border-border shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">F</span>
+            <div className="w-10 h-10 bg-primary text-primary-foreground rounded-lg flex items-center justify-center font-bold text-lg group-hover:shadow-lg transition">
+              F
             </div>
-            <span className="font-bold text-lg hidden sm:inline">FashionHub</span>
+            <span className="font-bold text-xl hidden sm:inline text-primary">FashionHub</span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
-            <Link href="/shop" className="text-sm font-medium hover:text-primary transition">
+          <div className="hidden md:flex items-center gap-12">
+            <Link href="/shop" className="text-sm font-semibold text-foreground hover:text-accent transition relative group">
               Shop
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-accent group-hover:w-full transition-all duration-300"></span>
             </Link>
-            <Link href="/categories" className="text-sm font-medium hover:text-primary transition">
+            <Link href="/categories" className="text-sm font-semibold text-foreground hover:text-accent transition relative group">
               Categories
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-accent group-hover:w-full transition-all duration-300"></span>
             </Link>
-            <Link href="/about" className="text-sm font-medium hover:text-primary transition">
+            <Link href="/about" className="text-sm font-semibold text-foreground hover:text-accent transition relative group">
               About
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-accent group-hover:w-full transition-all duration-300"></span>
             </Link>
           </div>
 
@@ -45,33 +49,34 @@ export function Navbar() {
           {searchOpen && (
             <motion.div
               initial={{ opacity: 0, width: 0 }}
-              animate={{ opacity: 1, width: '200px' }}
+              animate={{ opacity: 1, width: '250px' }}
               exit={{ opacity: 0, width: 0 }}
               className="hidden md:block"
             >
               <input
                 type="text"
-                placeholder="Search..."
-                className="w-full px-4 py-2 rounded-lg bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                placeholder="Search products..."
+                className="w-full px-4 py-2 rounded-lg bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-accent text-sm"
               />
             </motion.div>
           )}
 
           {/* Right Icons */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             {/* Search Icon */}
             <button
               onClick={() => setSearchOpen(!searchOpen)}
-              className="hidden md:block p-2 hover:bg-secondary rounded-lg transition"
+              className="hidden md:block p-2 hover:bg-secondary rounded-lg transition hover:text-accent"
+              title="Search"
             >
               <FiSearch className="w-5 h-5" />
             </button>
 
             {/* Wishlist */}
-            <Link href="/wishlist" className="relative p-2 hover:bg-secondary rounded-lg transition">
+            <Link href="/wishlist" className="relative p-2 hover:bg-secondary rounded-lg transition hover:text-accent" title="Wishlist">
               <FiHeart className="w-5 h-5" />
               {wishlist.items.length > 0 && (
-                <span className="absolute top-0 right-0 w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center">
+                <span className="absolute top-0 right-0 w-5 h-5 bg-accent text-white text-xs rounded-full flex items-center justify-center font-semibold">
                   {wishlist.items.length}
                 </span>
               )}
@@ -80,18 +85,22 @@ export function Navbar() {
             {/* Cart */}
             <button
               onClick={() => dispatch(toggleCart())}
-              className="relative p-2 hover:bg-secondary rounded-lg transition"
+              className="relative p-2 hover:bg-secondary rounded-lg transition hover:text-accent"
+              title="Shopping cart"
             >
               <FiShoppingCart className="w-5 h-5" />
               {cart.items.length > 0 && (
-                <span className="absolute top-0 right-0 w-5 h-5 bg-accent text-white text-xs rounded-full flex items-center justify-center">
+                <span className="absolute top-0 right-0 w-5 h-5 bg-accent text-white text-xs rounded-full flex items-center justify-center font-semibold">
                   {cart.items.length}
                 </span>
               )}
             </button>
 
+            {/* Theme Toggle */}
+            <ThemeToggle />
+
             {/* Account */}
-            <Link href={auth.isAuthenticated ? '/dashboard' : '/login'} className="p-2 hover:bg-secondary rounded-lg transition">
+            <Link href={auth.isAuthenticated ? '/dashboard' : '/login'} className="p-2 hover:bg-secondary rounded-lg transition hover:text-accent" title="Account">
               <FiUser className="w-5 h-5" />
             </Link>
 

@@ -1,21 +1,20 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { FiArrowRight, FiTruck, FiShield, FiHeadphones, FiCheck } from 'react-icons/fi';
+import { FiArrowRight, FiTruck, FiShield, FiHeadphones, FiCheck, FiStar } from 'react-icons/fi';
 import { ProductCard } from '@/components/ProductCard';
+import { Marquee } from '@/components/Marquee';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/lib/store';
-import gsap from 'gsap';
 
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.2,
-      delayChildren: 0.3,
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
     },
   },
 };
@@ -31,9 +30,7 @@ const itemVariants = {
 
 export default function Home() {
   const products = useSelector((state: RootState) => state.products);
-  const featuredProducts = products.items.slice(0, 4);
-  const heroRef = useRef<HTMLDivElement>(null);
-  const testimonialsRef = useRef<HTMLDivElement>(null);
+  const featuredProducts = products.items.slice(0, 8);
 
   const categories = [
     { name: 'Jackets', count: '234 items', image: 'https://images.unsplash.com/photo-1551028719-00167b16ebc5?w=500&h=500&fit=crop' },
@@ -41,111 +38,138 @@ export default function Home() {
     { name: 'Shoes', count: '567 items', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&h=500&fit=crop' },
     { name: 'Sweaters', count: '189 items', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&h=500&fit=crop' },
     { name: 'Accessories', count: '345 items', image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=500&h=500&fit=crop' },
-    { name: 'Shirts', count: '123 items', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&h=500&fit=crop' },
+    { name: 'Shirts', count: '123 items', image: 'https://images.unsplash.com/photo-1517836357463-d25ddfcb53ef?w=500&h=500&fit=crop' },
   ];
 
   const testimonials = [
-    { name: 'Sarah Johnson', rating: 5, text: 'Amazing quality and fast shipping! Highly recommend.', role: 'Fashion Enthusiast', avatar: 'https://i.pravatar.cc/150?img=1' },
-    { name: 'Michael Chen', rating: 5, text: 'Best online shopping experience I\'ve had. Great customer service!', role: 'Regular Customer', avatar: 'https://i.pravatar.cc/150?img=2' },
-    { name: 'Emma Davis', rating: 5, text: 'Love the variety and competitive prices. Will definitely shop again!', role: 'Style Blogger', avatar: 'https://i.pravatar.cc/150?img=3' },
-    { name: 'James Wilson', rating: 5, text: 'Premium quality items at reasonable prices. Five stars!', role: 'Fashion Designer', avatar: 'https://i.pravatar.cc/150?img=4' },
+    { name: 'Sarah Johnson', rating: 5, text: 'Amazing quality and fast shipping!', role: 'Fashion Enthusiast', avatar: 'https://i.pravatar.cc/150?img=1' },
+    { name: 'Michael Chen', rating: 5, text: 'Best online shopping experience!', role: 'Regular Customer', avatar: 'https://i.pravatar.cc/150?img=2' },
+    { name: 'Emma Davis', rating: 5, text: 'Love the variety and competitive prices!', role: 'Style Blogger', avatar: 'https://i.pravatar.cc/150?img=3' },
+    { name: 'James Wilson', rating: 5, text: 'Premium quality at reasonable prices!', role: 'Fashion Designer', avatar: 'https://i.pravatar.cc/150?img=4' },
+    { name: 'Lisa Anderson', rating: 5, text: 'Excellent customer service and support!', role: 'Business Owner', avatar: 'https://i.pravatar.cc/150?img=5' },
+    { name: 'David Brown', rating: 5, text: 'Highly recommend to everyone!', role: 'Professional', avatar: 'https://i.pravatar.cc/150?img=6' },
   ];
 
-  // GSAP Hero Animation
-  useEffect(() => {
-    if (!heroRef.current) return;
-
-    const context = gsap.context(() => {
-      const timeline = gsap.timeline();
-
-      timeline
-        .from('.hero-title', { y: 100, opacity: 0, duration: 0.8, ease: 'power3.out' }, 0)
-        .from('.hero-subtitle', { y: 100, opacity: 0, duration: 0.8, ease: 'power3.out' }, 0.2)
-        .from('.hero-buttons', { y: 100, opacity: 0, duration: 0.8, ease: 'power3.out' }, 0.4)
-        .from('.hero-bg-element', { scale: 1.2, opacity: 0, duration: 1.2, ease: 'power2.out' }, 0);
-    }, heroRef);
-
-    return () => context.revert();
-  }, []);
-
-  // Testimonials auto-scroll animation
-  useEffect(() => {
-    if (!testimonialsRef.current) return;
-
-    const testimonialCards = testimonialsRef.current.querySelectorAll('.testimonial-card');
-    
-    gsap.to(testimonialCards, {
-      y: -20,
-      opacity: 0.3,
-      duration: 0.6,
-      stagger: {
-        each: 0.1,
-        repeat: -1,
-        yoyo: true,
-      },
-    });
-  }, []);
+  const whyChoose = [
+    {
+      icon: FiTruck,
+      title: 'Free Shipping',
+      description: 'On all orders over $100. Fast and reliable delivery worldwide.',
+    },
+    {
+      icon: FiShield,
+      title: 'Secure Payment',
+      description: 'Multiple payment options with 100% secure transactions.',
+    },
+    {
+      icon: FiHeadphones,
+      title: '24/7 Support',
+      description: 'Dedicated customer service team ready to help anytime.',
+    },
+    {
+      icon: FiCheck,
+      title: 'Quality Assured',
+      description: 'Premium products verified for quality and authenticity.',
+    },
+  ];
 
   return (
     <main className="bg-background">
-      {/* Hero Section with GSAP */}
-      <section ref={heroRef} className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-accent/8 to-transparent" />
-        
-        {/* Animated Background Elements */}
-        <div className="hero-bg-element absolute top-10 right-20 w-72 h-72 bg-primary/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-10 left-20 w-96 h-96 bg-accent/15 rounded-full blur-3xl" />
-
-        <motion.div
-          className="relative z-10 text-center max-w-3xl mx-auto px-4"
+      {/* Hero Section with Background Image */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+        {/* Background Image with Overlay */}
+        <div
+          className="absolute inset-0 z-0"
+          style={{
+            backgroundImage: 'url(/hero-fashion.jpg)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundAttachment: 'fixed',
+          }}
         >
-          <motion.h1
-            className="hero-title text-5xl md:text-7xl font-bold mb-6 text-balance leading-tight"
+          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
+        </div>
+
+        {/* Hero Content */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="relative z-10 text-center max-w-4xl mx-auto px-4 sm:px-6"
+        >
+          <motion.div
+            variants={itemVariants}
+            className="inline-block px-4 py-2 bg-accent/20 border border-accent rounded-full mb-6 backdrop-blur-sm"
           >
-            Premium Fashion, <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">Limitless Style</span>
+            <span className="text-accent font-semibold text-sm">Welcome to FashionHub</span>
+          </motion.div>
+
+          <motion.h1
+            variants={itemVariants}
+            className="text-5xl md:text-7xl lg:text-8xl font-black text-white text-balance leading-tight mb-6"
+          >
+            Premium Fashion,{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-emerald-300">
+              Limitless Style
+            </span>
           </motion.h1>
 
           <motion.p
-            className="hero-subtitle text-lg md:text-xl text-muted-foreground mb-8 text-balance"
+            variants={itemVariants}
+            className="text-lg md:text-xl text-gray-200 max-w-2xl mx-auto mb-12"
           >
             Discover curated collections from world-class suppliers. Elevate your wardrobe with premium quality and exclusive designs.
           </motion.p>
 
           <motion.div
-            className="hero-buttons flex flex-col sm:flex-row items-center justify-center gap-4"
+            variants={itemVariants}
+            className="flex flex-col sm:flex-row items-center justify-center gap-6"
           >
             <Link
               href="/shop"
-              className="group px-8 py-4 bg-primary text-white rounded-lg hover:opacity-90 transition font-semibold flex items-center gap-2 relative overflow-hidden"
+              className="px-8 py-4 bg-accent text-black font-bold rounded-lg hover:opacity-90 transition flex items-center gap-2 group"
             >
-              <span className="relative z-10 flex items-center gap-2">
-                Shop Now <FiArrowRight className="w-5 h-5 group-hover:translate-x-1 transition" />
-              </span>
+              Shop Now
+              <FiArrowRight className="group-hover:translate-x-1 transition" />
             </Link>
             <Link
               href="/categories"
-              className="px-8 py-4 border-2 border-primary text-primary rounded-lg hover:bg-primary hover:text-white transition font-semibold"
+              className="px-8 py-4 border-2 border-white text-white font-bold rounded-lg hover:bg-white hover:text-black transition"
             >
               Explore Collections
             </Link>
           </motion.div>
         </motion.div>
+
+        {/* Scroll Indicator */}
+        <motion.div
+          animate={{ y: [0, 10, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-white opacity-60"
+        >
+          <div className="w-6 h-10 border-2 border-white rounded-full flex items-center justify-center">
+            <div className="w-1 h-2 bg-white rounded-full" />
+          </div>
+        </motion.div>
       </section>
 
-      {/* Categories Section - Enhanced */}
-      <section className="py-16 md:py-24 bg-secondary">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Why Choose FashionHub */}
+      <section className="py-20 md:py-32 px-4 sm:px-6 bg-card">
+        <div className="max-w-7xl mx-auto">
           <motion.div
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="mb-16 text-center"
           >
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">Shop by Category</h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Browse through our premium collection of fashion items
-            </p>
+            <motion.h2 variants={itemVariants} className="text-4xl md:text-5xl font-bold mb-4">
+              Why Choose FashionHub?
+            </motion.h2>
+            <motion.p variants={itemVariants} className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              We deliver exceptional value and unmatched customer experience.
+            </motion.p>
           </motion.div>
 
           <motion.div
@@ -153,24 +177,67 @@ export default function Home() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="grid grid-cols-2 md:grid-cols-3 gap-4"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
           >
-            {categories.map((cat, i) => (
+            {whyChoose.map((item, index) => {
+              const Icon = item.icon;
+              return (
+                <motion.div
+                  key={index}
+                  variants={itemVariants}
+                  className="p-8 bg-background rounded-xl border border-border hover:shadow-lg hover:border-accent transition group"
+                >
+                  <div className="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center mb-4 group-hover:bg-accent group-hover:text-white transition">
+                    <Icon className="w-6 h-6 text-accent group-hover:text-white transition" />
+                  </div>
+                  <h3 className="text-lg font-bold mb-2">{item.title}</h3>
+                  <p className="text-muted-foreground text-sm">{item.description}</p>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Categories Section */}
+      <section className="py-20 md:py-32 px-4 sm:px-6 bg-background">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="mb-16"
+          >
+            <motion.h2 variants={itemVariants} className="text-4xl md:text-5xl font-bold mb-4">
+              Shop by Category
+            </motion.h2>
+            <motion.p variants={itemVariants} className="text-lg text-muted-foreground">
+              Browse our curated collections across all categories.
+            </motion.p>
+          </motion.div>
+
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+          >
+            {categories.map((category, index) => (
               <motion.div
-                key={i}
+                key={index}
                 variants={itemVariants}
-                whileHover={{ y: -8, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}
-                className="relative h-48 md:h-56 rounded-lg overflow-hidden cursor-pointer group"
+                className="group relative h-64 rounded-xl overflow-hidden cursor-pointer"
               >
                 <img
-                  src={cat.image}
-                  alt={cat.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                  src={category.image}
+                  alt={category.name}
+                  className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-6">
-                  <h3 className="text-white font-bold text-lg">{cat.name}</h3>
-                  <p className="text-white/80 text-sm">{cat.count}</p>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col items-center justify-center text-white opacity-100 group-hover:opacity-100 transition">
+                  <h3 className="text-2xl font-bold">{category.name}</h3>
+                  <p className="text-sm text-gray-300 mt-2">{category.count}</p>
                 </div>
               </motion.div>
             ))}
@@ -179,19 +246,21 @@ export default function Home() {
       </section>
 
       {/* Featured Products */}
-      <section className="py-16 md:py-24 bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 md:py-32 px-4 sm:px-6 bg-card">
+        <div className="max-w-7xl mx-auto">
           <motion.div
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="mb-16"
           >
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">Trending Now</h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Bestselling items loved by our community
-            </p>
+            <motion.h2 variants={itemVariants} className="text-4xl md:text-5xl font-bold mb-4">
+              Featured Collection
+            </motion.h2>
+            <motion.p variants={itemVariants} className="text-lg text-muted-foreground">
+              Handpicked items for this season.
+            </motion.p>
           </motion.div>
 
           <motion.div
@@ -207,181 +276,113 @@ export default function Home() {
               </motion.div>
             ))}
           </motion.div>
+        </div>
+      </section>
 
+      {/* Testimonials with Marquee */}
+      <section className="py-20 md:py-32 px-4 sm:px-6 bg-background overflow-hidden">
+        <div className="max-w-7xl mx-auto mb-16">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
             viewport={{ once: true }}
-            className="text-center mt-12"
+            className="text-center"
           >
-            <Link
-              href="/shop"
-              className="inline-flex items-center gap-2 px-8 py-4 border-2 border-primary text-primary rounded-lg hover:bg-primary hover:text-white transition font-semibold"
-            >
-              Explore All Products <FiArrowRight className="w-5 h-5" />
+            <motion.h2 variants={itemVariants} className="text-4xl md:text-5xl font-bold mb-4">
+              What Our Customers Say
+            </motion.h2>
+            <motion.p variants={itemVariants} className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Join thousands of satisfied customers worldwide.
+            </motion.p>
+          </motion.div>
+        </div>
+
+        {/* Marquee Testimonials - Top Row */}
+        <Marquee className="mb-8" pauseOnHover>
+          {testimonials.map((testimonial, index) => (
+            <div key={index} className="flex-shrink-0 w-96 mx-4">
+              <motion.div
+                whileHover={{ y: -5 }}
+                className="p-8 bg-card rounded-xl border border-border hover:shadow-xl transition"
+              >
+                <div className="flex items-center gap-4 mb-4">
+                  <img
+                    src={testimonial.avatar}
+                    alt={testimonial.name}
+                    className="w-12 h-12 rounded-full"
+                  />
+                  <div>
+                    <h4 className="font-bold">{testimonial.name}</h4>
+                    <p className="text-xs text-muted-foreground">{testimonial.role}</p>
+                  </div>
+                </div>
+                <div className="flex gap-1 mb-3">
+                  {Array.from({ length: testimonial.rating }).map((_, i) => (
+                    <FiStar key={i} className="w-4 h-4 fill-accent text-accent" />
+                  ))}
+                </div>
+                <p className="text-sm text-muted-foreground">{testimonial.text}</p>
+              </motion.div>
+            </div>
+          ))}
+        </Marquee>
+
+        {/* Marquee Testimonials - Bottom Row (Reverse) */}
+        <Marquee reverse className="mb-8" pauseOnHover>
+          {testimonials.map((testimonial, index) => (
+            <div key={index} className="flex-shrink-0 w-96 mx-4">
+              <motion.div
+                whileHover={{ y: -5 }}
+                className="p-8 bg-card rounded-xl border border-border hover:shadow-xl transition"
+              >
+                <div className="flex items-center gap-4 mb-4">
+                  <img
+                    src={testimonial.avatar}
+                    alt={testimonial.name}
+                    className="w-12 h-12 rounded-full"
+                  />
+                  <div>
+                    <h4 className="font-bold">{testimonial.name}</h4>
+                    <p className="text-xs text-muted-foreground">{testimonial.role}</p>
+                  </div>
+                </div>
+                <div className="flex gap-1 mb-3">
+                  {Array.from({ length: testimonial.rating }).map((_, i) => (
+                    <FiStar key={i} className="w-4 h-4 fill-accent text-accent" />
+                  ))}
+                </div>
+                <p className="text-sm text-muted-foreground">{testimonial.text}</p>
+              </motion.div>
+            </div>
+          ))}
+        </Marquee>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 md:py-32 px-4 sm:px-6 bg-primary text-primary-foreground">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          className="max-w-4xl mx-auto text-center"
+        >
+          <motion.h2 variants={itemVariants} className="text-4xl md:text-5xl font-bold mb-6">
+            Ready to Elevate Your Style?
+          </motion.h2>
+          <motion.p variants={itemVariants} className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
+            Join millions of fashion lovers and discover your next favorite piece today.
+          </motion.p>
+          <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/shop" className="px-8 py-4 bg-accent text-black font-bold rounded-lg hover:opacity-90 transition">
+              Start Shopping
+            </Link>
+            <Link href="/about" className="px-8 py-4 border-2 border-current font-bold rounded-lg hover:bg-white/10 transition">
+              Learn More
             </Link>
           </motion.div>
-        </div>
-      </section>
-
-      {/* Why Choose Us */}
-      <section className="py-16 md:py-24 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">Why Choose FashionHub?</h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              The complete destination for fashion-forward shoppers and premium sellers
-            </p>
-          </motion.div>
-
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-8"
-          >
-            {[
-              { title: 'Curated Collections', desc: 'Handpicked products from verified suppliers' },
-              { title: 'Best Prices', desc: 'Competitive pricing with regular discounts' },
-              { title: 'Fast Delivery', desc: '5-7 day shipping to most locations' },
-              { title: 'Buyer Protection', desc: '100% money-back guarantee' },
-              { title: 'Verified Sellers', desc: 'All sellers are thoroughly vetted' },
-              { title: 'Expert Support', desc: '24/7 customer service team ready to help' },
-            ].map((item, i) => (
-              <motion.div
-                key={i}
-                variants={itemVariants}
-                className="flex gap-4"
-              >
-                <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <FiCheck className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-1">{item.title}</h3>
-                  <p className="text-muted-foreground">{item.desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Premium Testimonials Section - Enhanced */}
-      <section ref={testimonialsRef} className="py-16 md:py-24 bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">Loved by Fashion Lovers</h2>
-            <p className="text-muted-foreground text-lg">Real reviews from real customers</p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {testimonials.map((testimonial, i) => (
-              <motion.div
-                key={i}
-                className="testimonial-card"
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                whileHover={{ y: -8, transition: { duration: 0.2 } }}
-              >
-                <div className="bg-card p-6 rounded-xl shadow-md hover:shadow-xl transition h-full flex flex-col backdrop-blur-sm border border-border/50">
-                  {/* Stars */}
-                  <div className="flex gap-1 mb-4">
-                    {[...Array(testimonial.rating)].map((_, j) => (
-                      <span key={j} className="text-accent text-lg">★</span>
-                    ))}
-                  </div>
-
-                  {/* Quote */}
-                  <p className="text-foreground mb-6 flex-grow italic">&quot;{testimonial.text}&quot;</p>
-
-                  {/* Author */}
-                  <div className="flex items-center gap-3 border-t border-border pt-4">
-                    <img
-                      src={testimonial.avatar}
-                      alt={testimonial.name}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                    <div>
-                      <p className="font-semibold text-sm">{testimonial.name}</p>
-                      <p className="text-xs text-muted-foreground">{testimonial.role}</p>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-16 md:py-24 bg-foreground text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-8"
-          >
-            <motion.div variants={itemVariants} className="text-center">
-              <FiTruck className="w-12 h-12 mx-auto mb-4 text-primary" />
-              <h3 className="text-xl font-semibold mb-2">Free Shipping</h3>
-              <p className="text-gray-300">On orders over $100. Fast and reliable delivery.</p>
-            </motion.div>
-
-            <motion.div variants={itemVariants} className="text-center">
-              <FiShield className="w-12 h-12 mx-auto mb-4 text-accent" />
-              <h3 className="text-xl font-semibold mb-2">Secure Shopping</h3>
-              <p className="text-gray-300">100% secure transactions with buyer protection.</p>
-            </motion.div>
-
-            <motion.div variants={itemVariants} className="text-center">
-              <FiHeadphones className="w-12 h-12 mx-auto mb-4 text-primary" />
-              <h3 className="text-xl font-semibold mb-2">24/7 Support</h3>
-              <p className="text-gray-300">Dedicated customer service team ready to help.</p>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Newsletter Section */}
-      <section className="py-16 md:py-24 bg-gradient-to-r from-primary/10 to-accent/10">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Stay Updated</h2>
-            <p className="text-muted-foreground mb-8">Get the latest fashion trends and exclusive offers delivered to your inbox.</p>
-
-            <div className="flex gap-2 max-w-md mx-auto">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-4 py-3 rounded-lg bg-white border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              <button className="px-6 py-3 bg-primary text-white rounded-lg hover:opacity-90 transition font-semibold">
-                Subscribe
-              </button>
-            </div>
-          </motion.div>
-        </div>
+        </motion.div>
       </section>
     </main>
   );

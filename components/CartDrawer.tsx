@@ -2,14 +2,35 @@
 
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/lib/store';
-import { removeFromCart, updateQuantity, toggleCart } from '@/lib/slices/cartSlice';
-import { FiX, FiTrash2 } from 'react-icons/fi';
+import { removeFromCart, updateQuantity, toggleCart, clearCart } from '@/lib/slices/cartSlice';
+import { FiX, FiTrash2, FiCheck } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export function CartDrawer() {
   const dispatch = useDispatch();
+  const router = useRouter();
   const { isOpen, items, total } = useSelector((state: RootState) => state.cart);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [orderPlaced, setOrderPlaced] = useState(false);
+
+  const handleCheckout = async () => {
+    setIsProcessing(true);
+    // Simulate order processing
+    setTimeout(() => {
+      setOrderPlaced(true);
+      setIsProcessing(false);
+      
+      setTimeout(() => {
+        dispatch(clearCart());
+        dispatch(toggleCart());
+        setOrderPlaced(false);
+        router.push('/dashboard');
+      }, 2000);
+    }, 1500);
+  };
 
   return (
     <AnimatePresence>
@@ -30,7 +51,7 @@ export function CartDrawer() {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 h-full w-full sm:w-96 bg-white shadow-lg z-50 flex flex-col"
+            className="fixed right-0 top-0 h-full w-full sm:w-96 bg-card shadow-lg z-50 flex flex-col border border-border"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-border">
@@ -51,7 +72,7 @@ export function CartDrawer() {
                   <Link
                     href="/shop"
                     onClick={() => dispatch(toggleCart())}
-                    className="px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition"
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition"
                   >
                     Continue Shopping
                   </Link>
@@ -117,15 +138,33 @@ export function CartDrawer() {
                   <span>Total:</span>
                   <span className="text-primary">${total.toFixed(2)}</span>
                 </div>
-                <button className="w-full bg-primary text-white py-3 rounded-lg hover:opacity-90 transition font-medium">
-                  Checkout
-                </button>
-                <button
-                  onClick={() => dispatch(toggleCart())}
-                  className="w-full border border-border py-3 rounded-lg hover:bg-secondary transition font-medium"
-                >
-                  Continue Shopping
-                </button>
+
+                {orderPlaced ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="w-full bg-green-100 text-green-800 py-3 rounded-lg font-medium flex items-center justify-center gap-2"
+                  >
+                    <FiCheck className="w-5 h-5" />
+                    Order Placed Successfully!
+                  </motion.div>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleCheckout}
+                      disabled={isProcessing}
+                      className="w-full bg-primary text-primary-foreground py-3 rounded-lg hover:opacity-90 transition font-medium disabled:opacity-50"
+                    >
+                      {isProcessing ? 'Processing...' : 'Checkout'}
+                    </button>
+                    <button
+                      onClick={() => dispatch(toggleCart())}
+                      className="w-full border border-border py-3 rounded-lg hover:bg-secondary transition font-medium"
+                    >
+                      Continue Shopping
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </motion.div>

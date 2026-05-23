@@ -6,6 +6,7 @@ import { RootState } from '@/lib/store';
 import { FiArrowLeft, FiEdit, FiTrash2, FiPlus, FiSearch } from 'react-icons/fi';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -17,11 +18,23 @@ const containerVariants = {
 
 export default function ManageProductsPage() {
   const products = useSelector((state: RootState) => state.products);
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const filteredProducts = products.items.filter((product) =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleEdit = (productId: string) => {
+    router.push(`/supplier/products/edit/${productId}`);
+  };
+
+  const handleDelete = (productId: string) => {
+    setDeletingId(null);
+    alert(`Product ${productId} deleted successfully!`);
+    // In a real app, this would dispatch a delete action to Redux
+  };
 
   return (
     <main className="bg-background min-h-screen py-12">
@@ -77,7 +90,7 @@ export default function ManageProductsPage() {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="bg-card rounded-lg shadow-sm overflow-hidden"
+          className="bg-card rounded-lg shadow-sm overflow-hidden border border-border"
         >
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -121,10 +134,16 @@ export default function ManageProductsPage() {
                     <td className="px-6 py-4 text-sm">{Math.floor(Math.random() * 50)}</td>
                     <td className="px-6 py-4 text-sm">
                       <div className="flex items-center gap-2">
-                        <button className="p-2 hover:bg-border rounded transition">
+                        <button
+                          onClick={() => handleEdit(product.id)}
+                          className="p-2 hover:bg-border rounded transition" title="Edit product"
+                        >
                           <FiEdit className="w-5 h-5 text-primary" />
                         </button>
-                        <button className="p-2 hover:bg-border rounded transition">
+                        <button
+                          onClick={() => setDeletingId(product.id)}
+                          className="p-2 hover:bg-border rounded transition" title="Delete product"
+                        >
                           <FiTrash2 className="w-5 h-5 text-destructive" />
                         </button>
                       </div>
@@ -148,6 +167,34 @@ export default function ManageProductsPage() {
             </div>
           )}
         </motion.div>
+
+        {/* Delete Confirmation Modal */}
+        {deletingId && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-card p-6 rounded-lg shadow-lg max-w-sm mx-4"
+            >
+              <h3 className="text-lg font-bold mb-2">Delete Product?</h3>
+              <p className="text-muted-foreground mb-6">This action cannot be undone.</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeletingId(null)}
+                  className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-secondary transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDelete(deletingId)}
+                  className="flex-1 px-4 py-2 bg-destructive text-white rounded-lg hover:opacity-90 transition"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </div>
     </main>
   );
