@@ -3,34 +3,41 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { useDispatch } from 'react-redux';
-import { setUser } from '@/lib/slices/authSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import { login, DEMO_USERS } from '@/lib/slices/authSlice';
 import { useRouter } from 'next/navigation';
 import { FiMail, FiLock } from 'react-icons/fi';
+import { RootState } from '@/lib/store';
 
 export default function LoginPage() {
   const dispatch = useDispatch();
   const router = useRouter();
+  const auth = useSelector((state: RootState) => state.auth);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<'customer' | 'supplier' | 'admin'>('customer');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    // Simulate login
+    // Simulate login delay
     setTimeout(() => {
-      dispatch(setUser({
-        id: '1',
-        name: 'John Doe',
-        email: email,
-        role: 'customer',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop',
-      }));
+      dispatch(login({ email, password, role }));
       setLoading(false);
       router.push('/dashboard');
-    }, 1000);
+    }, 800);
+  };
+
+  const handleDemoLogin = (demoRole: 'customer' | 'supplier' | 'admin') => {
+    setLoading(true);
+    setTimeout(() => {
+      const demoUser = DEMO_USERS[demoRole];
+      dispatch(login({ email: demoUser.email, password: 'demo', role: demoRole }));
+      setLoading(false);
+      router.push('/dashboard');
+    }, 800);
   };
 
   return (
@@ -46,6 +53,13 @@ export default function LoginPage() {
             <h1 className="text-3xl font-bold">Welcome Back</h1>
             <p className="text-muted-foreground">Sign in to your FashionHub account</p>
           </div>
+
+          {/* Error Message */}
+          {auth.error && (
+            <div className="bg-destructive/10 border border-destructive text-destructive text-sm p-3 rounded-lg">
+              {auth.error}
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -81,6 +95,20 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Role Selector */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Login As</label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as 'customer' | 'supplier' | 'admin')}
+                className="w-full px-4 py-3 bg-secondary rounded-lg border border-border focus:ring-2 focus:ring-primary focus:outline-none text-sm"
+              >
+                <option value="customer">Customer</option>
+                <option value="supplier">Supplier</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+
             {/* Remember Me & Forgot */}
             <div className="flex items-center justify-between text-sm">
               <label className="flex items-center gap-2">
@@ -103,6 +131,37 @@ export default function LoginPage() {
               {loading ? 'Signing in...' : 'Sign In'}
             </motion.button>
           </form>
+
+          {/* Demo Accounts Section */}
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground text-center">Demo Accounts (for testing)</p>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => handleDemoLogin('customer')}
+                disabled={loading}
+                className="text-xs px-3 py-2 bg-secondary border border-border rounded-lg hover:bg-border transition disabled:opacity-50"
+              >
+                Customer
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDemoLogin('supplier')}
+                disabled={loading}
+                className="text-xs px-3 py-2 bg-secondary border border-border rounded-lg hover:bg-border transition disabled:opacity-50"
+              >
+                Supplier
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDemoLogin('admin')}
+                disabled={loading}
+                className="text-xs px-3 py-2 bg-secondary border border-border rounded-lg hover:bg-border transition disabled:opacity-50"
+              >
+                Admin
+              </button>
+            </div>
+          </div>
 
           {/* Divider */}
           <div className="relative">

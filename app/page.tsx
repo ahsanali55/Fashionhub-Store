@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { FiArrowRight, FiTruck, FiShield, FiHeadphones } from 'react-icons/fi';
+import { FiArrowRight, FiTruck, FiShield, FiHeadphones, FiCheck } from 'react-icons/fi';
 import { ProductCard } from '@/components/ProductCard';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/lib/store';
@@ -182,7 +182,54 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Why Choose Us Section */}
+      <section className="py-16 md:py-24 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">Why Choose FashionHub?</h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              The complete destination for fashion-forward shoppers and premium sellers
+            </p>
+          </motion.div>
+
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-8"
+          >
+            {[
+              { title: 'Curated Collections', desc: 'Handpicked products from verified suppliers' },
+              { title: 'Best Prices', desc: 'Competitive pricing with regular discounts' },
+              { title: 'Fast Delivery', desc: '5-7 day shipping to most locations' },
+              { title: 'Buyer Protection', desc: '100% money-back guarantee' },
+              { title: 'Verified Sellers', desc: 'All sellers are thoroughly vetted' },
+              { title: 'Expert Support', desc: '24/7 customer service team ready to help' },
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                variants={itemVariants}
+                className="flex gap-4"
+              >
+                <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <FiCheck className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg mb-1">{item.title}</h3>
+                  <p className="text-muted-foreground">{item.desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
       <section className="py-16 md:py-24 bg-foreground text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
