@@ -291,6 +291,7 @@ export default function DashboardPage() {
               <motion.button
                 variants={itemVariants}
                 className="flex items-center gap-3 px-6 py-4 bg-primary text-white rounded-lg hover:opacity-90 transition font-semibold"
+                onClick={() => window.location.href = '/supplier/products/add'}
               >
                 <FiPlus className="w-5 h-5" />
                 Add New Product
@@ -299,6 +300,7 @@ export default function DashboardPage() {
               <motion.button
                 variants={itemVariants}
                 className="flex items-center gap-3 px-6 py-4 border border-border rounded-lg hover:bg-secondary transition font-semibold"
+                onClick={() => window.location.href = '/supplier/products'}
               >
                 <FiEdit className="w-5 h-5" />
                 Manage Products
@@ -307,6 +309,7 @@ export default function DashboardPage() {
               <motion.button
                 variants={itemVariants}
                 className="flex items-center gap-3 px-6 py-4 border border-border rounded-lg hover:bg-secondary transition font-semibold"
+                onClick={() => window.location.href = '/supplier/analytics'}
               >
                 <FiBarChart2 className="w-5 h-5" />
                 View Analytics
