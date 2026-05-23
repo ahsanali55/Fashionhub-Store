@@ -18,7 +18,7 @@ export function Navbar() {
   const wishlist = useSelector((state: RootState) => state.wishlist);
 
   return (
-    <nav className="sticky top-0 z-50 bg-card border-b border-border shadow-md">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-card/70 backdrop-blur-md border-b border-border/30 shadow-sm hover:bg-card/90 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
