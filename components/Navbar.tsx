@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/lib/store';
@@ -13,12 +13,25 @@ export function Navbar() {
   const dispatch = useDispatch();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const cart = useSelector((state: RootState) => state.cart);
   const auth = useSelector((state: RootState) => state.auth);
   const wishlist = useSelector((state: RootState) => state.wishlist);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const navbarClasses = scrolled 
+    ? 'bg-card/95 backdrop-blur-md border-b border-border/50 shadow-md' 
+    : 'bg-transparent backdrop-blur-sm border-b border-transparent';
+
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-card/70 backdrop-blur-md border-b border-border/30 shadow-sm hover:bg-card/90 transition-colors duration-300">
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${navbarClasses}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}

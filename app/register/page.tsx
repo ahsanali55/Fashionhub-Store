@@ -37,7 +37,12 @@ export default function RegisterPage() {
     setTimeout(() => {
       dispatch(register({ name, email, password, role }));
       setLoading(false);
-      router.push('/dashboard');
+      // Route to correct dashboard based on role
+      if (role === 'customer') {
+        router.push('/customer/dashboard');
+      } else if (role === 'supplier') {
+        router.push('/supplier/dashboard');
+      }
     }, 800);
   };
 
