@@ -46,9 +46,9 @@ export function HeroSection({
           backgroundAttachment: 'fixed',
         }}
       >
-        {/* Reduced fade for light mode */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/20 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
+        {/* Reduced fade for light mode - much lighter now */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-black/10 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background/40 to-transparent" />
       </div>
 
       {/* Hero Content */}

@@ -3,6 +3,7 @@
 import { Navbar } from '@/components/Navbar';
 import { CartDrawer } from '@/components/CartDrawer';
 import { Footer } from '@/components/Footer';
+import { AuthInitializer } from '@/components/AuthInitializer';
 import { Suspense } from 'react';
 
 export function ClientLayout({
@@ -12,6 +13,7 @@ export function ClientLayout({
 }) {
   return (
     <>
+      <AuthInitializer />
       <Suspense fallback={null}>
         <Navbar />
         <CartDrawer />

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/lib/store';
@@ -20,15 +21,23 @@ const itemVariants = {
 export default function AdminDashboardPage() {
   const router = useRouter();
   const auth = useSelector((state: RootState) => state.auth);
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const orders = useSelector((state: RootState) => state.orders);
   const products = useSelector((state: RootState) => state.products);
 
-  if (!auth.isAuthenticated || auth.user?.role !== 'admin') {
-    router.push('/login');
-    return null;
-  }
+  useEffect(() => {
+    if (!auth.isAuthenticated || auth.user?.role !== 'admin') {
+      router.push('/login');
+    } else {
+      setIsAuthorized(true);
+    }
+  }, [auth.isAuthenticated, auth.user?.role, router]);
 
   const totalRevenue = orders.items.reduce((sum, o) => sum + o.total, 0);
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   const adminLinks = [
     { label: 'User Management', icon: FiUsers, href: '/admin/users' },

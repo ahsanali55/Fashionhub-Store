@@ -26,7 +26,14 @@ export default function LoginPage() {
     setTimeout(() => {
       dispatch(login({ email, password, role }));
       setLoading(false);
-      router.push('/dashboard');
+      // Route to correct dashboard based on role
+      if (role === 'customer') {
+        router.push('/customer/dashboard');
+      } else if (role === 'supplier') {
+        router.push('/supplier/dashboard');
+      } else if (role === 'admin') {
+        router.push('/admin/dashboard');
+      }
     }, 800);
   };
 
@@ -36,7 +43,14 @@ export default function LoginPage() {
       const demoUser = DEMO_USERS[demoRole];
       dispatch(login({ email: demoUser.email, password: 'demo', role: demoRole }));
       setLoading(false);
-      router.push('/dashboard');
+      // Route to correct dashboard based on role
+      if (demoRole === 'customer') {
+        router.push('/customer/dashboard');
+      } else if (demoRole === 'supplier') {
+        router.push('/supplier/dashboard');
+      } else if (demoRole === 'admin') {
+        router.push('/admin/dashboard');
+      }
     }, 800);
   };
 
