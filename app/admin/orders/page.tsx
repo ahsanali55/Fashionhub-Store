@@ -1,0 +1,129 @@
+'use client';
+
+import { motion } from 'framer-motion';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/lib/store';
+import { useRouter } from 'next/navigation';
+import { FiArrowLeft, FiPackage } from 'react-icons/fi';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
+const statusColors: Record<string, string> = {
+  pending: 'bg-yellow-100 text-yellow-800',
+  processing: 'bg-blue-100 text-blue-800',
+  shipped: 'bg-purple-100 text-purple-800',
+  delivered: 'bg-green-100 text-green-800',
+};
+
+export default function AdminOrdersPage() {
+  const router = useRouter();
+  const auth = useSelector((state: RootState) => state.auth);
+  const orders = useSelector((state: RootState) => state.orders);
+
+  if (!auth.isAuthenticated || auth.user?.role !== 'admin') {
+    router.push('/login');
+    return null;
+  }
+
+  return (
+    <main className="bg-background min-h-screen py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-primary hover:text-accent mb-6 transition"
+          >
+            <FiArrowLeft className="w-5 h-5" />
+            Back
+          </button>
+          <h1 className="text-4xl font-bold mb-2">All Orders</h1>
+          <p className="text-muted-foreground">Monitor platform orders and transactions</p>
+        </motion.div>
+
+        {/* Stats */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"
+        >
+          <motion.div variants={itemVariants} className="bg-card p-6 rounded-lg shadow-sm">
+            <p className="text-muted-foreground text-sm">Total Orders</p>
+            <p className="text-4xl font-bold mt-2">{orders.items.length}</p>
+            <p className="text-sm text-green-600 mt-2">+12% from last month</p>
+          </motion.div>
+          <motion.div variants={itemVariants} className="bg-card p-6 rounded-lg shadow-sm">
+            <p className="text-muted-foreground text-sm">Total Revenue</p>
+            <p className="text-4xl font-bold mt-2">
+              ${orders.items.reduce((sum, o) => sum + o.total, 0).toFixed(0)}K
+            </p>
+            <p className="text-sm text-green-600 mt-2">+8% from last month</p>
+          </motion.div>
+          <motion.div variants={itemVariants} className="bg-card p-6 rounded-lg shadow-sm">
+            <p className="text-muted-foreground text-sm">Pending Fulfillment</p>
+            <p className="text-4xl font-bold mt-2">
+              {orders.items.filter((o) => o.status === 'pending' || o.status === 'processing').length}
+            </p>
+            <p className="text-sm text-orange-600 mt-2">Needs attention</p>
+          </motion.div>
+        </motion.div>
+
+        {/* Orders Table */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="bg-card rounded-lg shadow-sm overflow-hidden"
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border bg-secondary">
+                  <th className="px-6 py-4 text-left text-sm font-semibold">Order ID</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold">Items</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold">Total</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold">Status</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.items.map((order) => (
+                  <motion.tr
+                    key={order.id}
+                    variants={itemVariants}
+                    className="border-b border-border hover:bg-secondary transition"
+                  >
+                    <td className="px-6 py-4 font-semibold">#{order.id}</td>
+                    <td className="px-6 py-4 text-sm">{order.items.length} items</td>
+                    <td className="px-6 py-4 font-semibold text-primary">${order.total.toFixed(2)}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${statusColors[order.status]}`}>
+                        {order.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground">
+                      {new Date(order.date).toLocaleDateString()}
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+      </div>
+    </main>
+  );
+}
