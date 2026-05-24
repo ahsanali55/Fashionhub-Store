@@ -100,9 +100,27 @@ export function Navbar() {
             <ThemeToggle />
 
             {/* Account */}
-            <Link href={auth.isAuthenticated ? '/dashboard' : '/login'} className="p-2 hover:bg-secondary rounded-lg transition hover:text-accent" title="Account">
-              <FiUser className="w-5 h-5" />
-            </Link>
+            {auth.isAuthenticated ? (
+              <Link
+                href={
+                  auth.user?.role === 'customer'
+                    ? '/customer/dashboard'
+                    : auth.user?.role === 'supplier'
+                      ? '/supplier/dashboard'
+                      : auth.user?.role === 'admin'
+                        ? '/admin/dashboard'
+                        : '/login'
+                }
+                className="p-2 hover:bg-secondary rounded-lg transition hover:text-accent"
+                title="Account"
+              >
+                <FiUser className="w-5 h-5" />
+              </Link>
+            ) : (
+              <Link href="/login" className="p-2 hover:bg-secondary rounded-lg transition hover:text-accent" title="Account">
+                <FiUser className="w-5 h-5" />
+              </Link>
+            )}
 
             {/* Mobile Menu Toggle */}
             <button

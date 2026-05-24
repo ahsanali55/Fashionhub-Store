@@ -1,132 +1,159 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '@/lib/store';
-import { filterByCategory, searchProducts } from '@/lib/slices/productsSlice';
-import { ProductCard } from '@/components/ProductCard';
-import { FiFilter } from 'react-icons/fi';
 import { useState } from 'react';
+import Link from 'next/link';
+import { FiSearch, FiFilter } from 'react-icons/fi';
+import { ProductDetail } from '@/components/ProductDetail';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/lib/store';
 
 const containerVariants = {
   hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
 };
 
 export default function ShopPage() {
-  const dispatch = useDispatch();
   const products = useSelector((state: RootState) => state.products);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [sortBy, setSortBy] = useState('newest');
 
-  const categories = ['all', 'jackets', 'dresses', 'shoes', 'sweaters', 'accessories', 'shirts', 'bags'];
+  const categories = ['All', 'Jackets', 'Dresses', 'Shoes', 'Accessories', 'Shirts'];
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const term = e.target.value;
-    setSearchTerm(term);
-    dispatch(searchProducts(term));
-  };
+  const filteredProducts = products.items.filter(
+    (product) =>
+      (selectedCategory === 'All' || product.category === selectedCategory) &&
+      product.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const handleCategoryFilter = (category: string) => {
-    dispatch(filterByCategory(category));
-  };
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    switch (sortBy) {
+      case 'price-low':
+        return a.price - b.price;
+      case 'price-high':
+        return b.price - a.price;
+      case 'rating':
+        return (b.rating || 0) - (a.rating || 0);
+      default:
+        return 0;
+    }
+  });
 
   return (
-    <main className="bg-background min-h-screen">
-      {/* Header */}
-      <div className="bg-secondary border-b border-border py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-4"
-          >
-            <h1 className="text-4xl font-bold">Shop Our Collection</h1>
-            <p className="text-muted-foreground">Discover premium fashion from suppliers worldwide</p>
+    <main className="bg-background min-h-screen py-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-12"
+        >
+          <h1 className="text-4xl font-bold mb-2">Shop Our Collection</h1>
+          <p className="text-muted-foreground">Discover premium fashion from top suppliers</p>
+        </motion.div>
 
-            {/* Search Bar */}
-            <div className="flex gap-2 mt-6">
-              <input
-                type="text"
-                placeholder="Search products..."
-                value={searchTerm}
-                onChange={handleSearch}
-                className="flex-1 px-4 py-3 rounded-lg bg-white border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-          </motion.div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex gap-8">
-          {/* Sidebar */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className={`${filterOpen ? 'block' : 'hidden'} md:block w-full md:w-64 mb-8 md:mb-0`}
-          >
-            <div className="space-y-6">
-              <div>
-                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                  <FiFilter className="w-5 h-5" />
-                  Categories
-                </h3>
-                <div className="space-y-2">
-                  {categories.map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => handleCategoryFilter(cat)}
-                      className={`w-full text-left px-4 py-2 rounded-lg capitalize transition ${
-                        products.selectedCategory === cat
-                          ? 'bg-primary text-white'
-                          : 'bg-secondary hover:bg-border'
-                      }`}
-                    >
-                      {cat === 'all' ? 'All Products' : cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Products Grid */}
-          <div className="flex-1">
-            {products.filtered.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground text-lg">No products found.</p>
-              </div>
-            ) : (
-              <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-              >
-                {products.filtered.map((product) => (
-                  <motion.div
-                    key={product.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <ProductCard product={product} />
-                  </motion.div>
-                ))}
-              </motion.div>
-            )}
-
-            {/* Results Count */}
-            <div className="mt-12 text-center text-muted-foreground">
-              <p>Showing {products.filtered.length} products</p>
-            </div>
+        {/* Search & Filters */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-12 space-y-6"
+        >
+          {/* Search Bar */}
+          <div className="relative">
+            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-card border border-border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
+            />
           </div>
-        </div>
+
+          {/* Categories */}
+          <div className="flex flex-wrap gap-2">
+            {categories.map((category) => (
+              <motion.button
+                key={category}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setSelectedCategory(category)}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  selectedCategory === category
+                    ? 'bg-primary text-white'
+                    : 'bg-card border border-border hover:border-primary'
+                }`}
+              >
+                {category}
+              </motion.button>
+            ))}
+          </div>
+
+          {/* Sort */}
+          <div className="flex items-center gap-2">
+            <FiFilter className="w-5 h-5 text-muted-foreground" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-4 py-2 bg-card border border-border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
+            >
+              <option value="newest">Newest</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+              <option value="rating">Top Rated</option>
+            </select>
+          </div>
+        </motion.div>
+
+        {/* Products Grid */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+        >
+          {sortedProducts.length > 0 ? (
+            sortedProducts.map((product) => (
+              <motion.div key={product.id} variants={itemVariants}>
+                <ProductDetail product={product} />
+              </motion.div>
+            ))
+          ) : (
+            <motion.div
+              variants={itemVariants}
+              className="col-span-full text-center py-12"
+            >
+              <p className="text-muted-foreground mb-4">No products found matching your criteria.</p>
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedCategory('All');
+                }}
+                className="text-primary hover:text-accent font-medium transition"
+              >
+                Clear filters
+              </button>
+            </motion.div>
+          )}
+        </motion.div>
+
+        {/* View All Link */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="text-center mt-12"
+        >
+          <p className="text-muted-foreground mb-4">
+            Showing {sortedProducts.length} of {products.items.length} products
+          </p>
+        </motion.div>
       </div>
     </main>
   );
