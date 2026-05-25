@@ -9,6 +9,8 @@ import { RootState } from '@/lib/store';
 import { Product } from '@/lib/slices/productsSlice';
 import Link from 'next/link';
 import { FiStar } from 'react-icons/fi';
+import { useState } from 'react';
+import { IMAGE_FALLBACKS, getProductImageUrl } from '@/lib/images';
 
 interface ProductCardProps {
   product: Product;
@@ -18,6 +20,8 @@ export function ProductCard({ product }: ProductCardProps) {
   const dispatch = useDispatch();
   const wishlist = useSelector((state: RootState) => state.wishlist);
   const isInWishlist = wishlist.items.some(item => item.id === product.id);
+  const [imageSrc, setImageSrc] = useState(product.image || getProductImageUrl(product.id));
+  const [imageError, setImageError] = useState(false);
 
   const handleAddToCart = () => {
     dispatch(addToCart({
@@ -25,7 +29,7 @@ export function ProductCard({ product }: ProductCardProps) {
       name: product.name,
       price: product.price,
       quantity: 1,
-      image: product.image,
+      image: imageSrc,
     }));
   };
 
@@ -37,8 +41,15 @@ export function ProductCard({ product }: ProductCardProps) {
         id: product.id,
         name: product.name,
         price: product.price,
-        image: product.image,
+        image: imageSrc,
       }));
+    }
+  };
+
+  const handleImageError = () => {
+    if (!imageError) {
+      setImageSrc(IMAGE_FALLBACKS.product);
+      setImageError(true);
     }
   };
 
@@ -53,8 +64,9 @@ export function ProductCard({ product }: ProductCardProps) {
       {/* Image Container */}
       <div className="relative overflow-hidden bg-secondary h-64">
         <motion.img
-          src={product.image}
+          src={imageSrc}
           alt={product.name}
+          onError={handleImageError}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
           whileHover={{ scale: 1.1 }}
         />

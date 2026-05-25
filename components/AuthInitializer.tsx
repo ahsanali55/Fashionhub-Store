@@ -11,7 +11,12 @@ export function AuthInitializer() {
 
   useEffect(() => {
     // Load auth state from localStorage on app initialization
-    const savedAuth = localStorage.getItem('fh-auth');
+    let savedAuth = localStorage.getItem('fh-auth');
+    if (!savedAuth) {
+      // Try alternate key for testing
+      savedAuth = localStorage.getItem('persist_auth');
+    }
+    
     if (savedAuth) {
       try {
         const parsedAuth = JSON.parse(savedAuth);

@@ -6,6 +6,7 @@ import { RootState } from '@/lib/store';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FiShoppingBag, FiHeart, FiTrendingUp, FiSettings, FiArrowRight } from 'react-icons/fi';
+import { LogoutButton } from '@/components/LogoutButton';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -38,15 +39,17 @@ export default function CustomerDashboardPage() {
   return (
     <main className="bg-background min-h-screen py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Welcome Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-12"
-        >
-          <h1 className="text-4xl font-bold mb-2">Welcome back, {auth.user?.name}!</h1>
-          <p className="text-muted-foreground">Here&apos;s your personalized dashboard</p>
-        </motion.div>
+        {/* Header with Logout */}
+        <div className="flex items-start justify-between mb-12">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <h1 className="text-4xl font-bold mb-2">Welcome back, {auth.user?.name}!</h1>
+            <p className="text-muted-foreground">Here&apos;s your personalized dashboard</p>
+          </motion.div>
+          <LogoutButton variant="full" />
+        </div>
 
         {/* Quick Stats */}
         <motion.div

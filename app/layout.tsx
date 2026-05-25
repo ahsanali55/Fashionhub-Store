@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ReduxProvider } from './redux-provider'
 import { ClientLayout } from './client-layout'
+import { GlobalProgressBar } from '@/components/GlobalProgressBar'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -39,6 +40,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="bg-background">
       <body className="font-sans antialiased">
+        <GlobalProgressBar />
         <ReduxProvider>
           <ClientLayout>{children}</ClientLayout>
         </ReduxProvider>

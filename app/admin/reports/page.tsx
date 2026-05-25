@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/lib/store';
 import { useRouter } from 'next/navigation';
-import { FiArrowLeft, FiBox, FiHeart, FiDollarSign, FiUsers, FiPackage } from 'react-icons/fi';
+import { FiBox, FiHeart, FiDollarSign, FiUsers, FiPackage } from 'react-icons/fi';
+import { BackButton } from '@/components/BackButton';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -41,13 +42,7 @@ export default function AdminReportsPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-12"
         >
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-primary hover:text-accent mb-6 transition"
-          >
-            <FiArrowLeft className="w-5 h-5" />
-            Back
-          </button>
+          <BackButton fallbackHref="/admin/dashboard" />
           <h1 className="text-4xl font-bold mb-2">Reports</h1>
           <p className="text-muted-foreground">Generate and view platform reports</p>
         </motion.div>

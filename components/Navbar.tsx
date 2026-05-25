@@ -8,6 +8,7 @@ import { toggleCart } from '@/lib/slices/cartSlice';
 import { FiSearch, FiShoppingCart, FiMenu, FiX, FiHeart, FiUser } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { ThemeToggle } from './ThemeToggle';
+import { LogoutButton } from './LogoutButton';
 
 export function Navbar() {
   const dispatch = useDispatch();
@@ -114,21 +115,24 @@ export function Navbar() {
 
             {/* Account */}
             {auth.isAuthenticated ? (
-              <Link
-                href={
-                  auth.user?.role === 'customer'
-                    ? '/customer/dashboard'
-                    : auth.user?.role === 'supplier'
-                      ? '/supplier/dashboard'
-                      : auth.user?.role === 'admin'
-                        ? '/admin/dashboard'
-                        : '/login'
-                }
-                className="p-2 hover:bg-secondary rounded-lg transition hover:text-accent"
-                title="Account"
-              >
-                <FiUser className="w-5 h-5" />
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={
+                    auth.user?.role === 'customer'
+                      ? '/customer/dashboard'
+                      : auth.user?.role === 'supplier'
+                        ? '/supplier/dashboard'
+                        : auth.user?.role === 'admin'
+                          ? '/admin/dashboard'
+                          : '/login'
+                  }
+                  className="p-2 hover:bg-secondary rounded-lg transition hover:text-accent"
+                  title="Account"
+                >
+                  <FiUser className="w-5 h-5" />
+                </Link>
+                <LogoutButton variant="icon" />
+              </div>
             ) : (
               <Link href="/login" className="p-2 hover:bg-secondary rounded-lg transition hover:text-accent" title="Account">
                 <FiUser className="w-5 h-5" />
