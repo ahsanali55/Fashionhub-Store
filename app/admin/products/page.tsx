@@ -4,9 +4,10 @@ import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/lib/store';
 import { useRouter } from 'next/navigation';
-import { FiArrowLeft, FiSearch, FiCheckCircle, FiXCircle, FiEye, FiTrash2 } from 'react-icons/fi';
+import { FiSearch, FiCheckCircle, FiXCircle, FiEye, FiTrash2 } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
 import { ProductApprovalModal } from '@/components/modals/ProductApprovalModal';
+import { BackButton } from '@/components/BackButton';
 
 interface Product {
   id: number;
@@ -104,13 +105,7 @@ export default function AdminProductsPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-primary hover:text-accent mb-6 transition"
-          >
-            <FiArrowLeft className="w-5 h-5" />
-            Back
-          </button>
+          <BackButton fallbackHref="/admin/dashboard" />
           <h1 className="text-4xl font-bold mb-2">Product Management</h1>
           <p className="text-muted-foreground">Review and approve products</p>
         </motion.div>

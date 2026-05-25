@@ -4,8 +4,9 @@ import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/lib/store';
 import { useRouter } from 'next/navigation';
-import { FiArrowLeft, FiPackage, FiCheck, FiTruck } from 'react-icons/fi';
+import { FiPackage, FiCheck, FiTruck } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
+import { BackButton } from '@/components/BackButton';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -74,15 +75,9 @@ export default function AdminOrdersPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-primary hover:text-accent mb-6 transition"
-          >
-            <FiArrowLeft className="w-5 h-5" />
-            Back
-          </button>
-          <h1 className="text-4xl font-bold mb-2">All Orders</h1>
-          <p className="text-muted-foreground">Monitor platform orders and transactions</p>
+          <BackButton fallbackHref="/admin/dashboard" />
+          <h1 className="text-4xl font-bold mb-2">Orders</h1>
+          <p className="text-muted-foreground">Manage platform orders and tracking</p>
         </motion.div>
 
         {/* Stats */}

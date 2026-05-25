@@ -4,9 +4,10 @@ import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/lib/store';
 import { useRouter } from 'next/navigation';
-import { FiArrowLeft, FiPackage } from 'react-icons/fi';
+import { FiPackage } from 'react-icons/fi';
 import { OrderTimeline } from '@/components/OrderTimeline';
 import { EmptyState } from '@/components/EmptyState';
+import { BackButton } from '@/components/BackButton';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -37,13 +38,7 @@ export default function CustomerOrdersPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-primary hover:text-accent mb-6 transition"
-          >
-            <FiArrowLeft className="w-5 h-5" />
-            Back
-          </button>
+          <BackButton fallbackHref="/customer/dashboard" />
           <h1 className="text-4xl font-bold mb-2">My Orders</h1>
           <p className="text-muted-foreground">Track and manage your orders</p>
         </motion.div>

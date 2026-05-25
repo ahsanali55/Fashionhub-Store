@@ -4,8 +4,9 @@ import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/lib/store';
 import { useRouter } from 'next/navigation';
-import { FiArrowLeft, FiDollarSign, FiUsers, FiTrendingUp, FiShoppingBag } from 'react-icons/fi';
+import { FiDollarSign, FiUsers, FiTrendingUp, FiShoppingBag } from 'react-icons/fi';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BackButton } from '@/components/BackButton';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -54,15 +55,9 @@ export default function AdminAnalyticsPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-12"
         >
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-primary hover:text-accent mb-6 transition"
-          >
-            <FiArrowLeft className="w-5 h-5" />
-            Back
-          </button>
-          <h1 className="text-4xl font-bold mb-2">Platform Analytics</h1>
-          <p className="text-muted-foreground">Monitor overall platform performance and trends</p>
+          <BackButton fallbackHref="/admin/dashboard" />
+          <h1 className="text-4xl font-bold mb-2">Analytics</h1>
+          <p className="text-muted-foreground">Platform performance and insights</p>
         </motion.div>
 
         {/* KPIs */}

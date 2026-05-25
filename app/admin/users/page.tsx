@@ -4,9 +4,10 @@ import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/lib/store';
 import { useRouter } from 'next/navigation';
-import { FiArrowLeft, FiSearch, FiTrash2, FiEdit, FiCheckCircle } from 'react-icons/fi';
+import { FiSearch, FiTrash2, FiEdit, FiCheckCircle } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
 import { UserEditModal } from '@/components/modals/UserEditModal';
+import { BackButton } from '@/components/BackButton';
 
 interface User {
   id: number;
@@ -86,13 +87,7 @@ export default function AdminUsersPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-primary hover:text-accent mb-6 transition"
-          >
-            <FiArrowLeft className="w-5 h-5" />
-            Back
-          </button>
+          <BackButton fallbackHref="/admin/dashboard" />
           <h1 className="text-4xl font-bold mb-2">User Management</h1>
           <p className="text-muted-foreground">Manage all platform users</p>
         </motion.div>

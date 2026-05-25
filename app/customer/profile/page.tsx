@@ -1,12 +1,13 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { RootState } from '@/lib/store';
 import { useRouter } from 'next/navigation';
-import { logout } from '@/lib/slices/authSlice';
-import { FiArrowLeft, FiMail, FiPhone, FiMapPin, FiLogOut } from 'react-icons/fi';
+import { FiMail, FiPhone, FiMapPin } from 'react-icons/fi';
 import { useState } from 'react';
+import { BackButton } from '@/components/BackButton';
+import { LogoutButton } from '@/components/LogoutButton';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -29,11 +30,6 @@ export default function ProfilePage() {
     return null;
   }
 
-  const handleLogout = () => {
-    dispatch(logout());
-    router.push('/');
-  };
-
   return (
     <main className="bg-background min-h-screen py-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -43,13 +39,7 @@ export default function ProfilePage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-12"
         >
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-primary hover:text-accent mb-6 transition"
-          >
-            <FiArrowLeft className="w-5 h-5" />
-            Back
-          </button>
+          <BackButton fallbackHref="/customer/dashboard" />
           <h1 className="text-4xl font-bold mb-2">My Profile</h1>
           <p className="text-muted-foreground">Manage your account information</p>
         </motion.div>

@@ -3,7 +3,8 @@
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { FiArrowLeft, FiSun, FiMoon, FiBell, FiLock } from 'react-icons/fi';
+import { FiSun, FiMoon, FiBell, FiLock } from 'react-icons/fi';
+import { BackButton } from '@/components/BackButton';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -30,13 +31,7 @@ export default function SettingsPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-12"
         >
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-primary hover:text-accent mb-6 transition"
-          >
-            <FiArrowLeft className="w-5 h-5" />
-            Back
-          </button>
+          <BackButton fallbackHref="/customer/dashboard" />
           <h1 className="text-4xl font-bold mb-2">Settings</h1>
           <p className="text-muted-foreground">Manage your preferences and account</p>
         </motion.div>
