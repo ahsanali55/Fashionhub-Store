@@ -4,10 +4,12 @@ import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/lib/store';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { FiPackage } from 'react-icons/fi';
 import { OrderTimeline } from '@/components/OrderTimeline';
 import { EmptyState } from '@/components/EmptyState';
 import { BackButton } from '@/components/BackButton';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -23,10 +25,25 @@ export default function CustomerOrdersPage() {
   const router = useRouter();
   const auth = useSelector((state: RootState) => state.auth);
   const orders = useSelector((state: RootState) => state.orders);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
-  if (!auth.isAuthenticated) {
-    router.push('/login');
+  useEffect(() => {
+    if (!auth.isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+    setIsAuthorized(true);
+    const timer = setTimeout(() => setIsLoading(false), 400);
+    return () => clearTimeout(timer);
+  }, [auth.isAuthenticated, router]);
+
+  if (!isAuthorized) {
     return null;
+  }
+
+  if (isLoading) {
+    return <LoadingSpinner fullScreen size="lg" text="Loading your orders..." />;
   }
 
   return (
@@ -43,7 +60,7 @@ export default function CustomerOrdersPage() {
           <p className="text-muted-foreground">Track and manage your orders</p>
         </motion.div>
 
-        {orders.items.length === 0 ? (
+        {Array.isArray(orders) && orders.length === 0 ? (
           <EmptyState
             type="orders"
             title="No orders yet"
@@ -58,7 +75,7 @@ export default function CustomerOrdersPage() {
             animate="visible"
             className="space-y-8"
           >
-            {orders.items.map((order) => (
+            {Array.isArray(orders) && orders.map((order) => (
               <motion.div key={order.id} variants={itemVariants} className="bg-card rounded-lg shadow-sm p-8">
                 {/* Order Header */}
                 <div className="flex items-center justify-between mb-8 pb-6 border-b border-border">
@@ -96,7 +113,7 @@ export default function CustomerOrdersPage() {
                           <p className="font-medium">{item.name}</p>
                           <p className="text-sm text-muted-foreground">Qty: 1</p>
                         </div>
-                        <p className="font-semibold">${item.price.toFixed(2)}</p>
+                        <p className="font-semibold">${item.price ? item.price.toFixed(2) : '0.00'}</p>
                       </div>
                     ))}
                   </div>

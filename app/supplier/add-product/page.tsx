@@ -3,7 +3,8 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FiArrowLeft, FiUpload, FiX } from 'react-icons/fi';
+import { FiUpload, FiX } from 'react-icons/fi';
+import { BackButton } from '@/components/BackButton';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -63,14 +64,8 @@ export default function SupplierAddProductPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-primary hover:text-accent mb-6 transition"
-          >
-            <FiArrowLeft className="w-5 h-5" />
-            Back
-          </button>
-          <h1 className="text-4xl font-bold mb-2">Add New Product</h1>
+          <BackButton fallbackHref="/supplier/products" />
+          <h1 className="text-4xl font-bold mb-2 mt-6">Add New Product</h1>
           <p className="text-muted-foreground">List a new product for sale</p>
         </motion.div>
 

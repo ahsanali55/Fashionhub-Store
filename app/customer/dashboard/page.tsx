@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FiShoppingBag, FiHeart, FiTrendingUp, FiSettings, FiArrowRight } from 'react-icons/fi';
 import { LogoutButton } from '@/components/LogoutButton';
+import { useEffect, useState } from 'react';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -24,15 +26,30 @@ export default function CustomerDashboardPage() {
   const cart = useSelector((state: RootState) => state.cart);
   const wishlist = useSelector((state: RootState) => state.wishlist);
   const orders = useSelector((state: RootState) => state.orders);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
-  if (!auth.isAuthenticated) {
-    router.push('/login');
+  useEffect(() => {
+    if (!auth.isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+    setIsAuthorized(true);
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, [auth.isAuthenticated, router]);
+
+  if (!isAuthorized) {
     return null;
   }
 
+  if (isLoading) {
+    return <LoadingSpinner fullScreen size="lg" text="Loading your dashboard..." />;
+  }
+
   const quickLinks = [
-    { label: 'My Orders', icon: FiShoppingBag, href: '/customer/orders', count: orders.items.length },
-    { label: 'Wishlist', icon: FiHeart, href: '/customer/wishlist', count: wishlist.items.length },
+    { label: 'My Orders', icon: FiShoppingBag, href: '/customer/orders', count: Array.isArray(orders) ? orders.length : 0 },
+    { label: 'Wishlist', icon: FiHeart, href: '/customer/wishlist', count: Array.isArray(wishlist) ? wishlist.length : 0 },
     { label: 'Settings', icon: FiSettings, href: '/customer/settings' },
   ];
 
@@ -62,7 +79,7 @@ export default function CustomerDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground text-sm">Cart Items</p>
-                <p className="text-4xl font-bold mt-2">{cart.items.length}</p>
+                <p className="text-4xl font-bold mt-2">{Array.isArray(cart) ? cart.length : 0}</p>
               </div>
               <FiShoppingBag className="w-12 h-12 text-primary opacity-20" />
             </div>
@@ -72,7 +89,7 @@ export default function CustomerDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground text-sm">Wishlist</p>
-                <p className="text-4xl font-bold mt-2">{wishlist.items.length}</p>
+                <p className="text-4xl font-bold mt-2">{Array.isArray(wishlist) ? wishlist.length : 0}</p>
               </div>
               <FiHeart className="w-12 h-12 text-accent opacity-20" />
             </div>
@@ -82,7 +99,7 @@ export default function CustomerDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground text-sm">Total Orders</p>
-                <p className="text-4xl font-bold mt-2">{orders.items.length}</p>
+                <p className="text-4xl font-bold mt-2">{Array.isArray(orders) ? orders.length : 0}</p>
               </div>
               <FiTrendingUp className="w-12 h-12 text-primary opacity-20" />
             </div>
@@ -137,41 +154,29 @@ export default function CustomerDashboardPage() {
               View All →
             </Link>
           </div>
-          {orders.items.length > 0 ? (
-            <div className="bg-card rounded-lg shadow-sm overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border bg-secondary">
-                    <th className="px-6 py-4 text-left text-sm font-semibold">Order ID</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">Items</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">Amount</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.items.slice(0, 5).map((order) => (
-                    <motion.tr
-                      key={order.id}
-                      variants={itemVariants}
-                      className="border-b border-border hover:bg-secondary transition"
-                    >
-                      <td className="px-6 py-4 font-semibold">#{order.id}</td>
-                      <td className="px-6 py-4 text-sm">{order.items.length} items</td>
-                      <td className="px-6 py-4 font-semibold text-primary">${order.total.toFixed(2)}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${
-                          order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                          order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
-                          order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                          'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {order.status}
-                        </span>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
+          {Array.isArray(orders) && orders.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {orders.slice(0, 5).map((order) => (
+                <motion.div
+                  key={order.id}
+                  variants={itemVariants}
+                  className="bg-card rounded-lg shadow-sm p-6 border border-border hover:shadow-md transition"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold">Order #{order.id}</h3>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${
+                      order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                      order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
+                      order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {order.status}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">{order.items.length} items</p>
+                  <p className="text-lg font-bold text-primary">${order.total.toFixed(2)}</p>
+                </motion.div>
+              ))}
             </div>
           ) : (
             <div className="bg-card rounded-lg shadow-sm p-12 text-center">

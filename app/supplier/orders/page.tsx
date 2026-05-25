@@ -4,7 +4,10 @@ import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/lib/store';
 import { useRouter } from 'next/navigation';
-import { FiArrowLeft, FiPackage, FiTruck, FiCheckCircle } from 'react-icons/fi';
+import { useEffect, useState } from 'react';
+import { FiPackage, FiTruck, FiCheckCircle } from 'react-icons/fi';
+import { BackButton } from '@/components/BackButton';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -20,10 +23,25 @@ export default function SupplierOrdersPage() {
   const router = useRouter();
   const auth = useSelector((state: RootState) => state.auth);
   const orders = useSelector((state: RootState) => state.orders);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
-  if (!auth.isAuthenticated || auth.user?.role !== 'supplier') {
-    router.push('/login');
+  useEffect(() => {
+    if (!auth.isAuthenticated || auth.user?.role !== 'supplier') {
+      router.push('/login');
+      return;
+    }
+    setIsAuthorized(true);
+    const timer = setTimeout(() => setIsLoading(false), 400);
+    return () => clearTimeout(timer);
+  }, [auth.isAuthenticated, auth.user?.role, router]);
+
+  if (!isAuthorized) {
     return null;
+  }
+
+  if (isLoading) {
+    return <LoadingSpinner fullScreen size="lg" text="Loading your orders..." />;
   }
 
   const statusColors: Record<string, string> = {
@@ -42,13 +60,7 @@ export default function SupplierOrdersPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-12"
         >
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-primary hover:text-accent mb-6 transition"
-          >
-            <FiArrowLeft className="w-5 h-5" />
-            Back
-          </button>
+          <BackButton fallbackHref="/supplier/dashboard" />
           <h1 className="text-4xl font-bold mb-2">Manage Orders</h1>
           <p className="text-muted-foreground">View and manage customer orders</p>
         </motion.div>

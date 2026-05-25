@@ -8,6 +8,9 @@ export interface User {
   avatar: string;
   joinedDate?: string;
   phone?: string;
+  businessName?: string;
+  category?: string;
+  address?: string;
 }
 
 interface AuthState {
@@ -102,8 +105,14 @@ const authSlice = createSlice({
       state.isAuthenticated = true;
       state.error = null;
     },
+    updateProfile: (state, action: PayloadAction<Partial<User>>) => {
+      if (state.user) {
+        state.user = { ...state.user, ...action.payload };
+        state.error = null;
+      }
+    },
   },
 });
 
-export const { setUser, logout, setLoading, setError, login, register } = authSlice.actions;
+export const { setUser, logout, setLoading, setError, login, register, updateProfile } = authSlice.actions;
 export default authSlice.reducer;

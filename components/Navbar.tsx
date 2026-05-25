@@ -15,9 +15,14 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const cart = useSelector((state: RootState) => state.cart);
   const auth = useSelector((state: RootState) => state.auth);
   const wishlist = useSelector((state: RootState) => state.wishlist);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -114,7 +119,7 @@ export function Navbar() {
             <ThemeToggle />
 
             {/* Account */}
-            {auth.isAuthenticated ? (
+            {isMounted && auth.isAuthenticated ? (
               <div className="flex items-center gap-2">
                 <Link
                   href={

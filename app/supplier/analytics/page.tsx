@@ -1,9 +1,9 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { FiArrowLeft, FiTrendingUp, FiUsers, FiDollarSign, FiShoppingCart } from 'react-icons/fi';
-import Link from 'next/link';
+import { FiTrendingUp, FiUsers, FiDollarSign, FiShoppingCart } from 'react-icons/fi';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BackButton } from '@/components/BackButton';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -47,13 +47,7 @@ export default function AnalyticsPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 text-primary hover:underline mb-6"
-          >
-            <FiArrowLeft className="w-5 h-5" />
-            Back to Dashboard
-          </Link>
+          <BackButton fallbackHref="/supplier/dashboard" />
           <h1 className="text-4xl font-bold">Analytics & Reports</h1>
           <p className="text-muted-foreground mt-2">Track your sales performance and customer insights</p>
         </motion.div>

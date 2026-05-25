@@ -6,8 +6,9 @@ import { RootState } from '@/lib/store';
 import { removeFromWishlist } from '@/lib/slices/wishlistSlice';
 import { addToCart } from '@/lib/slices/cartSlice';
 import { useRouter } from 'next/navigation';
-import { FiArrowLeft, FiTrash2, FiShoppingCart } from 'react-icons/fi';
+import { FiTrash2, FiShoppingCart } from 'react-icons/fi';
 import { EmptyState } from '@/components/EmptyState';
+import { BackButton } from '@/components/BackButton';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -44,15 +45,9 @@ export default function CustomerWishlistPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-primary hover:text-accent mb-6 transition"
-          >
-            <FiArrowLeft className="w-5 h-5" />
-            Back
-          </button>
-          <h1 className="text-4xl font-bold mb-2">My Wishlist</h1>
-          <p className="text-muted-foreground">Save items you love for later</p>
+          <BackButton fallbackHref="/shop" />
+          <h1 className="text-4xl font-bold mb-2 mt-6">My Wishlist</h1>
+          <p className="text-muted-foreground">Your saved items</p>
         </motion.div>
 
         {wishlist.items.length === 0 ? (
