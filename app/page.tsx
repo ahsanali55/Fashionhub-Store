@@ -4,9 +4,9 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { FiArrowRight, FiTruck, FiShield, FiHeadphones, FiCheck, FiStar } from 'react-icons/fi';
 import { ProductCard } from '@/components/ProductCard';
-import { Marquee } from '@/components/Marquee';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/lib/store';
+import { TestimonialsSection } from '@/components/sections/TestimonialsSection';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -39,15 +39,6 @@ export default function Home() {
     { name: 'Sweaters', count: '189 items', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&h=500&fit=crop' },
     { name: 'Accessories', count: '345 items', image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=500&h=500&fit=crop' },
     { name: 'Shirts', count: '123 items', image: 'https://images.unsplash.com/photo-1517836357463-d25ddfcb53ef?w=500&h=500&fit=crop' },
-  ];
-
-  const testimonials = [
-    { name: 'Sarah Johnson', rating: 5, text: 'Amazing quality and fast shipping!', role: 'Fashion Enthusiast', avatar: 'https://i.pravatar.cc/150?img=1' },
-    { name: 'Michael Chen', rating: 5, text: 'Best online shopping experience!', role: 'Regular Customer', avatar: 'https://i.pravatar.cc/150?img=2' },
-    { name: 'Emma Davis', rating: 5, text: 'Love the variety and competitive prices!', role: 'Style Blogger', avatar: 'https://i.pravatar.cc/150?img=3' },
-    { name: 'James Wilson', rating: 5, text: 'Premium quality at reasonable prices!', role: 'Fashion Designer', avatar: 'https://i.pravatar.cc/150?img=4' },
-    { name: 'Lisa Anderson', rating: 5, text: 'Excellent customer service and support!', role: 'Business Owner', avatar: 'https://i.pravatar.cc/150?img=5' },
-    { name: 'David Brown', rating: 5, text: 'Highly recommend to everyone!', role: 'Professional', avatar: 'https://i.pravatar.cc/150?img=6' },
   ];
 
   const whyChoose = [
@@ -279,85 +270,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonials with Marquee */}
-      <section className="py-20 md:py-32 px-4 sm:px-6 bg-background overflow-hidden">
-        <div className="max-w-7xl mx-auto mb-16">
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="text-center"
-          >
-            <motion.h2 variants={itemVariants} className="text-4xl md:text-5xl font-bold mb-4">
-              What Our Customers Say
-            </motion.h2>
-            <motion.p variants={itemVariants} className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Join thousands of satisfied customers worldwide.
-            </motion.p>
-          </motion.div>
-        </div>
-
-        {/* Marquee Testimonials - Top Row */}
-        <Marquee className="mb-8" pauseOnHover>
-          {testimonials.map((testimonial, index) => (
-            <div key={index} className="flex-shrink-0 w-96 mx-4">
-              <motion.div
-                whileHover={{ y: -5 }}
-                className="p-8 bg-card rounded-xl border border-border hover:shadow-xl transition"
-              >
-                <div className="flex items-center gap-4 mb-4">
-                  <img
-                    src={testimonial.avatar}
-                    alt={testimonial.name}
-                    className="w-12 h-12 rounded-full"
-                  />
-                  <div>
-                    <h4 className="font-bold">{testimonial.name}</h4>
-                    <p className="text-xs text-muted-foreground">{testimonial.role}</p>
-                  </div>
-                </div>
-                <div className="flex gap-1 mb-3">
-                  {Array.from({ length: testimonial.rating }).map((_, i) => (
-                    <FiStar key={i} className="w-4 h-4 fill-accent text-accent" />
-                  ))}
-                </div>
-                <p className="text-sm text-muted-foreground">{testimonial.text}</p>
-              </motion.div>
-            </div>
-          ))}
-        </Marquee>
-
-        {/* Marquee Testimonials - Bottom Row (Reverse) */}
-        <Marquee reverse className="mb-8" pauseOnHover>
-          {testimonials.map((testimonial, index) => (
-            <div key={index} className="flex-shrink-0 w-96 mx-4">
-              <motion.div
-                whileHover={{ y: -5 }}
-                className="p-8 bg-card rounded-xl border border-border hover:shadow-xl transition"
-              >
-                <div className="flex items-center gap-4 mb-4">
-                  <img
-                    src={testimonial.avatar}
-                    alt={testimonial.name}
-                    className="w-12 h-12 rounded-full"
-                  />
-                  <div>
-                    <h4 className="font-bold">{testimonial.name}</h4>
-                    <p className="text-xs text-muted-foreground">{testimonial.role}</p>
-                  </div>
-                </div>
-                <div className="flex gap-1 mb-3">
-                  {Array.from({ length: testimonial.rating }).map((_, i) => (
-                    <FiStar key={i} className="w-4 h-4 fill-accent text-accent" />
-                  ))}
-                </div>
-                <p className="text-sm text-muted-foreground">{testimonial.text}</p>
-              </motion.div>
-            </div>
-          ))}
-        </Marquee>
-      </section>
+      {/* Premium Testimonials Section */}
+      <TestimonialsSection />
 
       {/* CTA Section */}
       <section className="py-20 md:py-32 px-4 sm:px-6 bg-primary text-primary-foreground">

@@ -4,8 +4,18 @@ import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/lib/store';
 import { useRouter } from 'next/navigation';
-import { FiArrowLeft, FiSearch, FiTrash2, FiEdit } from 'react-icons/fi';
-import { useState } from 'react';
+import { FiArrowLeft, FiSearch, FiTrash2, FiEdit, FiCheckCircle } from 'react-icons/fi';
+import { useState, useEffect } from 'react';
+import { UserEditModal } from '@/components/modals/UserEditModal';
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: 'customer' | 'supplier' | 'admin';
+  status: 'active' | 'inactive';
+  joined: string;
+}
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -17,7 +27,7 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-const mockUsers = [
+const mockUsers: User[] = [
   { id: 1, name: 'John Doe', email: 'john@example.com', role: 'customer', status: 'active', joined: '2024-01-15' },
   { id: 2, name: 'Sarah Smith', email: 'sarah@example.com', role: 'supplier', status: 'active', joined: '2024-02-20' },
   { id: 3, name: 'Mike Johnson', email: 'mike@example.com', role: 'customer', status: 'inactive', joined: '2024-03-10' },
@@ -29,17 +39,43 @@ export default function AdminUsersPage() {
   const router = useRouter();
   const auth = useSelector((state: RootState) => state.auth);
   const [searchTerm, setSearchTerm] = useState('');
+  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  if (!auth.isAuthenticated || auth.user?.role !== 'admin') {
-    router.push('/login');
+  useEffect(() => {
+    if (!auth.isAuthenticated || auth.user?.role !== 'admin') {
+      router.push('/login');
+    } else {
+      setIsAuthorized(true);
+    }
+  }, [auth.isAuthenticated, auth.user?.role, router]);
+
+  if (!isAuthorized) {
     return null;
   }
 
-  const filteredUsers = mockUsers.filter(
+  const filteredUsers = users.filter(
     (user) =>
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleEdit = (user: User) => {
+    setEditingUser(user);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveUser = (updatedUser: User) => {
+    setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
+  };
+
+  const handleDeleteUser = (id: number) => {
+    setUsers(users.filter(u => u.id !== id));
+    setDeletingId(null);
+  };
 
   return (
     <main className="bg-background min-h-screen py-12">
@@ -127,10 +163,16 @@ export default function AdminUsersPage() {
                       {new Date(user.joined).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 flex gap-2">
-                      <button className="p-2 hover:bg-border rounded-lg transition text-primary">
+                      <button 
+                        onClick={() => handleEdit(user)}
+                        className="p-2 hover:bg-border rounded-lg transition text-primary hover:text-accent"
+                      >
                         <FiEdit className="w-4 h-4" />
                       </button>
-                      <button className="p-2 hover:bg-destructive/10 rounded-lg transition text-destructive">
+                      <button 
+                        onClick={() => setDeletingId(user.id)}
+                        className="p-2 hover:bg-destructive/10 rounded-lg transition text-destructive"
+                      >
                         <FiTrash2 className="w-4 h-4" />
                       </button>
                     </td>
@@ -159,6 +201,44 @@ export default function AdminUsersPage() {
             </button>
           </div>
         </motion.div>
+
+        {/* User Edit Modal */}
+        <UserEditModal
+          isOpen={isModalOpen}
+          user={editingUser}
+          onClose={() => setIsModalOpen(false)}
+          onSave={handleSaveUser}
+        />
+
+        {/* Delete Confirmation */}
+        {deletingId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-card rounded-lg shadow-xl max-w-sm w-full mx-4 p-6 border border-border"
+            >
+              <h3 className="text-lg font-bold mb-2">Delete User</h3>
+              <p className="text-muted-foreground mb-6">
+                Are you sure you want to delete this user? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeletingId(null)}
+                  className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-secondary transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => deletingId && handleDeleteUser(deletingId)}
+                  className="flex-1 px-4 py-2 bg-destructive text-white rounded-lg hover:opacity-90 transition"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </div>
     </main>
   );
