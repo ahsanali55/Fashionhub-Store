@@ -3,10 +3,11 @@
 import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/lib/store';
-import { FiArrowLeft, FiEdit, FiTrash2, FiPlus, FiSearch } from 'react-icons/fi';
+import { FiEdit, FiTrash2, FiPlus, FiSearch } from 'react-icons/fi';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { BackButton } from '@/components/BackButton';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -45,14 +46,8 @@ export default function ManageProductsPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 text-primary hover:underline mb-6"
-          >
-            <FiArrowLeft className="w-5 h-5" />
-            Back to Dashboard
-          </Link>
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <BackButton fallbackHref="/supplier/dashboard" />
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mt-6">
             <div>
               <h1 className="text-4xl font-bold">Manage Products</h1>
               <p className="text-muted-foreground mt-2">Edit, delete, or add new products to your store</p>

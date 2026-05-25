@@ -47,6 +47,8 @@ export default function AdminDashboardPage() {
     return <LoadingSpinner fullScreen size="lg" text="Loading admin dashboard..." />;
   }
 
+  const totalRevenue = orders.items ? orders.items.reduce((sum, o) => sum + o.total, 0) : 0;
+
   const adminLinks = [
     { label: 'User Management', icon: FiUsers, href: '/admin/users' },
     { label: 'Supplier Management', icon: FiBox, href: '/admin/suppliers' },
@@ -93,7 +95,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground text-sm">Total Orders</p>
-                <p className="text-4xl font-bold mt-2">{orders.items.length}</p>
+                <p className="text-4xl font-bold mt-2">{Array.isArray(orders.items) ? orders.items.length : 0}</p>
                 <p className="text-primary text-sm mt-2">This month</p>
               </div>
               <FiBox className="w-12 h-12 text-accent opacity-20" />
@@ -104,7 +106,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground text-sm">Total Products</p>
-                <p className="text-4xl font-bold mt-2">{products.items.length}</p>
+                <p className="text-4xl font-bold mt-2">{Array.isArray(products.items) ? products.items.length : 0}</p>
                 <p className="text-muted-foreground text-sm mt-2">Active</p>
               </div>
               <FiBox className="w-12 h-12 text-primary opacity-20" />

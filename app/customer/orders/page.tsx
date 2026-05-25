@@ -43,7 +43,7 @@ export default function CustomerOrdersPage() {
           <p className="text-muted-foreground">Track and manage your orders</p>
         </motion.div>
 
-        {orders.items.length === 0 ? (
+        {Array.isArray(orders.items) && orders.items.length === 0 ? (
           <EmptyState
             type="orders"
             title="No orders yet"
@@ -58,7 +58,7 @@ export default function CustomerOrdersPage() {
             animate="visible"
             className="space-y-8"
           >
-            {orders.items.map((order) => (
+            {Array.isArray(orders.items) && orders.items.map((order) => (
               <motion.div key={order.id} variants={itemVariants} className="bg-card rounded-lg shadow-sm p-8">
                 {/* Order Header */}
                 <div className="flex items-center justify-between mb-8 pb-6 border-b border-border">
