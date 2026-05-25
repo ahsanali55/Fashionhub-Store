@@ -4,8 +4,19 @@ import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/lib/store';
 import { useRouter } from 'next/navigation';
-import { FiArrowLeft, FiSearch, FiCheckCircle, FiXCircle, FiEye } from 'react-icons/fi';
-import { useState } from 'react';
+import { FiArrowLeft, FiSearch, FiCheckCircle, FiXCircle, FiEye, FiTrash2 } from 'react-icons/fi';
+import { useState, useEffect } from 'react';
+import { ProductApprovalModal } from '@/components/modals/ProductApprovalModal';
+
+interface Product {
+  id: number;
+  name: string;
+  supplier: string;
+  price: number;
+  status: 'approved' | 'pending' | 'rejected';
+  category: string;
+  sales: number;
+}
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -17,7 +28,7 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-const mockProducts = [
+const mockProducts: Product[] = [
   { id: 1, name: 'Premium Leather Jacket', supplier: 'Premium Fashion Co.', price: 299.99, status: 'approved', category: 'Jackets', sales: 45 },
   { id: 2, name: 'Summer Dress', supplier: 'Style Hub', price: 89.99, status: 'pending', category: 'Dresses', sales: 0 },
   { id: 3, name: 'Running Shoes', supplier: 'Classic Wear', price: 149.99, status: 'approved', category: 'Shoes', sales: 128 },
@@ -30,18 +41,59 @@ export default function AdminProductsPage() {
   const auth = useSelector((state: RootState) => state.auth);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'approved' | 'pending' | 'rejected'>('all');
+  const [products, setProducts] = useState<Product[]>(mockProducts);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [action, setAction] = useState<'approve' | 'reject' | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  if (!auth.isAuthenticated || auth.user?.role !== 'admin') {
-    router.push('/login');
+  useEffect(() => {
+    if (!auth.isAuthenticated || auth.user?.role !== 'admin') {
+      router.push('/login');
+    } else {
+      setIsAuthorized(true);
+    }
+  }, [auth.isAuthenticated, auth.user?.role, router]);
+
+  if (!isAuthorized) {
     return null;
   }
 
-  const filteredProducts = mockProducts.filter(
+  const filteredProducts = products.filter(
     (product) =>
       (filterStatus === 'all' || product.status === filterStatus) &&
       (product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.supplier.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const handleAction = (product: Product, actionType: 'approve' | 'reject') => {
+    setSelectedProduct(product);
+    setAction(actionType);
+  };
+
+  const handleConfirmAction = () => {
+    if (!selectedProduct || !action) return;
+
+    const updatedProducts = products.map(p => {
+      if (p.id === selectedProduct.id) {
+        if (action === 'approve') {
+          return { ...p, status: 'approved' as const };
+        } else if (action === 'reject') {
+          return { ...p, status: 'rejected' as const };
+        }
+      }
+      return p;
+    });
+    
+    setProducts(updatedProducts);
+    setSelectedProduct(null);
+    setAction(null);
+  };
+
+  const handleDelete = (id: number) => {
+    setProducts(products.filter(p => p.id !== id));
+    setDeletingId(null);
+  };
 
   return (
     <main className="bg-background min-h-screen py-12">
@@ -150,13 +202,27 @@ export default function AdminProductsPage() {
                       </button>
                       {product.status === 'pending' && (
                         <>
-                          <button className="text-green-600 hover:text-green-700 font-medium text-sm">
+                          <button 
+                            onClick={() => handleAction(product, 'approve')}
+                            className="text-green-600 hover:text-green-700 font-medium text-sm transition"
+                          >
                             Approve
                           </button>
-                          <button className="text-destructive hover:text-destructive/80 font-medium text-sm">
+                          <button 
+                            onClick={() => handleAction(product, 'reject')}
+                            className="text-destructive hover:text-destructive/80 font-medium text-sm transition"
+                          >
                             Reject
                           </button>
                         </>
+                      )}
+                      {product.status === 'approved' && (
+                        <button 
+                          onClick={() => setDeletingId(product.id)}
+                          className="text-destructive hover:text-destructive/80 transition"
+                        >
+                          <FiTrash2 className="w-4 h-4" />
+                        </button>
                       )}
                     </td>
                   </motion.tr>
@@ -165,6 +231,45 @@ export default function AdminProductsPage() {
             </table>
           </div>
         </motion.div>
+
+        {/* Product Approval Modal */}
+        <ProductApprovalModal
+          isOpen={action !== null}
+          product={selectedProduct}
+          action={action}
+          onClose={() => { setAction(null); setSelectedProduct(null); }}
+          onConfirm={handleConfirmAction}
+        />
+
+        {/* Delete Confirmation */}
+        {deletingId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-card rounded-lg shadow-xl max-w-sm w-full mx-4 p-6 border border-border"
+            >
+              <h3 className="text-lg font-bold mb-2">Delete Product</h3>
+              <p className="text-muted-foreground mb-6">
+                Are you sure you want to remove this product from the platform? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeletingId(null)}
+                  className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-secondary transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => deletingId && handleDelete(deletingId)}
+                  className="flex-1 px-4 py-2 bg-destructive text-white rounded-lg hover:opacity-90 transition"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </div>
     </main>
   );
