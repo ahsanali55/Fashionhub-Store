@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FiShoppingBag, FiHeart, FiTrendingUp, FiSettings, FiArrowRight } from 'react-icons/fi';
 import { LogoutButton } from '@/components/LogoutButton';
+import { useEffect, useState } from 'react';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -24,10 +26,23 @@ export default function CustomerDashboardPage() {
   const cart = useSelector((state: RootState) => state.cart);
   const wishlist = useSelector((state: RootState) => state.wishlist);
   const orders = useSelector((state: RootState) => state.orders);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (auth.isAuthenticated) {
+      // Simulate page load
+      const timer = setTimeout(() => setIsLoading(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [auth.isAuthenticated]);
 
   if (!auth.isAuthenticated) {
     router.push('/login');
     return null;
+  }
+
+  if (isLoading) {
+    return <LoadingSpinner fullScreen size="lg" text="Loading your dashboard..." />;
   }
 
   const quickLinks = [

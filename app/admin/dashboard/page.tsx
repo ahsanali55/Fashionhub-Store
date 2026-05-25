@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FiUsers, FiBox, FiBarChart2, FiDollarSign, FiArrowRight } from 'react-icons/fi';
 import { LogoutButton } from '@/components/LogoutButton';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -23,6 +24,7 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const auth = useSelector((state: RootState) => state.auth);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const orders = useSelector((state: RootState) => state.orders);
   const products = useSelector((state: RootState) => state.products);
 
@@ -31,13 +33,18 @@ export default function AdminDashboardPage() {
       router.push('/login');
     } else {
       setIsAuthorized(true);
+      // Simulate page load
+      const timer = setTimeout(() => setIsLoading(false), 500);
+      return () => clearTimeout(timer);
     }
   }, [auth.isAuthenticated, auth.user?.role, router]);
 
-  const totalRevenue = orders.items.reduce((sum, o) => sum + o.total, 0);
-
   if (!isAuthorized) {
     return null;
+  }
+
+  if (isLoading) {
+    return <LoadingSpinner fullScreen size="lg" text="Loading admin dashboard..." />;
   }
 
   const adminLinks = [

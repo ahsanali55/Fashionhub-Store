@@ -1,13 +1,13 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/lib/store';
 import { useRouter } from 'next/navigation';
-import { FiMail, FiPhone, FiMapPin } from 'react-icons/fi';
+import { FiMail, FiPhone, FiMapPin, FiLogOut } from 'react-icons/fi';
 import { useState } from 'react';
 import { BackButton } from '@/components/BackButton';
-import { LogoutButton } from '@/components/LogoutButton';
+import { logout } from '@/lib/slices/authSlice';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -29,6 +29,11 @@ export default function ProfilePage() {
     router.push('/login');
     return null;
   }
+
+  const handleLogout = () => {
+    dispatch(logout());
+    router.push('/');
+  };
 
   return (
     <main className="bg-background min-h-screen py-12">
