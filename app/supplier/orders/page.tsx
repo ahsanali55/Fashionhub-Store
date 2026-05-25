@@ -4,8 +4,10 @@ import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/lib/store';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { FiPackage, FiTruck, FiCheckCircle } from 'react-icons/fi';
 import { BackButton } from '@/components/BackButton';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -21,10 +23,25 @@ export default function SupplierOrdersPage() {
   const router = useRouter();
   const auth = useSelector((state: RootState) => state.auth);
   const orders = useSelector((state: RootState) => state.orders);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
-  if (!auth.isAuthenticated || auth.user?.role !== 'supplier') {
-    router.push('/login');
+  useEffect(() => {
+    if (!auth.isAuthenticated || auth.user?.role !== 'supplier') {
+      router.push('/login');
+      return;
+    }
+    setIsAuthorized(true);
+    const timer = setTimeout(() => setIsLoading(false), 400);
+    return () => clearTimeout(timer);
+  }, [auth.isAuthenticated, auth.user?.role, router]);
+
+  if (!isAuthorized) {
     return null;
+  }
+
+  if (isLoading) {
+    return <LoadingSpinner fullScreen size="lg" text="Loading your orders..." />;
   }
 
   const statusColors: Record<string, string> = {

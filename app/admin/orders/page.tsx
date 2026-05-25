@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { FiPackage, FiCheck, FiTruck } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
 import { BackButton } from '@/components/BackButton';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -41,20 +42,27 @@ export default function AdminOrdersPage() {
   const reduxOrders = useSelector((state: RootState) => state.orders);
   const [orders, setOrders] = useState<Order[]>([]);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>('');
 
   useEffect(() => {
     if (!auth.isAuthenticated || auth.user?.role !== 'admin') {
       router.push('/login');
-    } else {
-      setIsAuthorized(true);
-      setOrders(reduxOrders.items as Order[]);
+      return;
     }
+    setIsAuthorized(true);
+    setOrders(reduxOrders.items as Order[]);
+    const timer = setTimeout(() => setIsLoading(false), 400);
+    return () => clearTimeout(timer);
   }, [auth.isAuthenticated, auth.user?.role, router, reduxOrders]);
 
   if (!isAuthorized) {
     return null;
+  }
+
+  if (isLoading) {
+    return <LoadingSpinner fullScreen size="lg" text="Loading orders..." />;
   }
 
   const handleStatusUpdate = (orderId: string, newStatus: string) => {

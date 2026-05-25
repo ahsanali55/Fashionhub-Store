@@ -44,11 +44,11 @@ export default function SupplierDashboardPage() {
     return <LoadingSpinner fullScreen size="lg" text="Loading your dashboard..." />;
   }
 
-  const totalRevenue = orders.items.reduce((sum, o) => sum + o.total, 0);
+  const totalRevenue = Array.isArray(orders) ? orders.reduce((sum, o) => sum + o.total, 0) : 0;
 
   const quickLinks = [
-    { label: 'Manage Products', icon: FiBox, href: '/supplier/products', count: products.items.length },
-    { label: 'Orders', icon: FiTrendingUp, href: '/supplier/orders', count: orders.items.length },
+    { label: 'Manage Products', icon: FiBox, href: '/supplier/products', count: Array.isArray(products) ? products.length : 0 },
+    { label: 'Orders', icon: FiTrendingUp, href: '/supplier/orders', count: Array.isArray(orders) ? orders.length : 0 },
     { label: 'Analytics', icon: FiBarChart2, href: '/supplier/analytics' },
     { label: 'Profile', icon: FiBox, href: '/supplier/profile' },
   ];
@@ -90,7 +90,7 @@ export default function SupplierDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground text-sm">Products Listed</p>
-                <p className="text-4xl font-bold mt-2">{products.items.length}</p>
+                <p className="text-4xl font-bold mt-2">{Array.isArray(products) ? products.length : 0}</p>
                 <p className="text-primary text-sm mt-2">Active products</p>
               </div>
               <FiBox className="w-12 h-12 text-accent opacity-20" />
@@ -101,8 +101,8 @@ export default function SupplierDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground text-sm">Orders</p>
-                <p className="text-4xl font-bold mt-2">{orders.items.length}</p>
-                <p className="text-orange-600 text-sm mt-2">{orders.items.filter(o => o.status === 'pending' || o.status === 'processing').length} pending</p>
+                <p className="text-4xl font-bold mt-2">{Array.isArray(orders) ? orders.length : 0}</p>
+                <p className="text-orange-600 text-sm mt-2">{Array.isArray(orders) ? orders.filter(o => o.status === 'pending' || o.status === 'processing').length : 0} pending</p>
               </div>
               <FiTrendingUp className="w-12 h-12 text-accent opacity-20" />
             </div>
