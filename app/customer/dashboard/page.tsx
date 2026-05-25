@@ -27,17 +27,19 @@ export default function CustomerDashboardPage() {
   const wishlist = useSelector((state: RootState) => state.wishlist);
   const orders = useSelector((state: RootState) => state.orders);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    if (auth.isAuthenticated) {
-      // Simulate page load
-      const timer = setTimeout(() => setIsLoading(false), 500);
-      return () => clearTimeout(timer);
+    if (!auth.isAuthenticated) {
+      router.push('/login');
+      return;
     }
-  }, [auth.isAuthenticated]);
+    setIsAuthorized(true);
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, [auth.isAuthenticated, router]);
 
-  if (!auth.isAuthenticated) {
-    router.push('/login');
+  if (!isAuthorized) {
     return null;
   }
 

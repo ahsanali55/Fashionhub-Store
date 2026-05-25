@@ -113,7 +113,7 @@ export default function CustomerOrdersPage() {
                           <p className="font-medium">{item.name}</p>
                           <p className="text-sm text-muted-foreground">Qty: 1</p>
                         </div>
-                        <p className="font-semibold">${item.price.toFixed(2)}</p>
+                        <p className="font-semibold">${item.price ? item.price.toFixed(2) : '0.00'}</p>
                       </div>
                     ))}
                   </div>
