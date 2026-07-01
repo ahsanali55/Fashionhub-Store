@@ -7,8 +7,7 @@ import { RootState } from '@/lib/store';
 import { toggleCart } from '@/lib/slices/cartSlice';
 import { FiSearch, FiShoppingCart, FiMenu, FiX, FiHeart, FiUser } from 'react-icons/fi';
 import { motion } from 'framer-motion';
-import { ThemeToggle } from './ThemeToggle';
-import { LogoutButton } from './LogoutButton';
+
 
 export function Navbar() {
   const dispatch = useDispatch();
@@ -32,12 +31,12 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navbarClasses = scrolled 
-    ? 'bg-card/95 backdrop-blur-md border-b border-border/50 shadow-md' 
+  const navbarClasses = scrolled
+    ? ' bg-card/95 backdrop-blur-md bg-transparent border-b border-border/50 shadow-md'
     : 'bg-transparent backdrop-blur-sm border-b border-transparent';
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${navbarClasses}`}>
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300  ${navbarClasses} bg-transparent`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
@@ -115,9 +114,6 @@ export function Navbar() {
               )}
             </button>
 
-            {/* Theme Toggle */}
-            <ThemeToggle />
-
             {/* Account */}
             {isMounted && auth.isAuthenticated ? (
               <div className="flex items-center gap-2">
@@ -136,7 +132,7 @@ export function Navbar() {
                 >
                   <FiUser className="w-5 h-5" />
                 </Link>
-                <LogoutButton variant="icon" />
+        
               </div>
             ) : (
               <Link href="/login" className="p-2 hover:bg-secondary rounded-lg transition hover:text-accent" title="Account">

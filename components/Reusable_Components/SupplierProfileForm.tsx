@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiX, FiCheck } from 'react-icons/fi';
-import { LoadingSpinner } from './LoadingSpinner';
+import { LoadingSpinner } from '../Admin/Loaders/LoadingSpinner';
+
 
 interface SupplierProfileFormProps {
   initialData: {
@@ -117,11 +118,10 @@ export function SupplierProfileForm({
             onChange={(e) =>
               setFormData({ ...formData, businessName: e.target.value })
             }
-            className={`w-full px-4 py-2 rounded-lg border ${
-              errors.businessName
+            className={`w-full px-4 py-2 rounded-lg border ${errors.businessName
                 ? 'border-destructive'
                 : 'border-border'
-            } bg-background focus:outline-none focus:ring-2 focus:ring-primary transition`}
+              } bg-background focus:outline-none focus:ring-2 focus:ring-primary transition`}
             placeholder="Enter business name"
           />
           {errors.businessName && (
@@ -137,9 +137,8 @@ export function SupplierProfileForm({
             onChange={(e) =>
               setFormData({ ...formData, category: e.target.value })
             }
-            className={`w-full px-4 py-2 rounded-lg border ${
-              errors.category ? 'border-destructive' : 'border-border'
-            } bg-background focus:outline-none focus:ring-2 focus:ring-primary transition`}
+            className={`w-full px-4 py-2 rounded-lg border ${errors.category ? 'border-destructive' : 'border-border'
+              } bg-background focus:outline-none focus:ring-2 focus:ring-primary transition`}
           >
             <option value="">Select a category</option>
             <option value="Fashion & Clothing">Fashion & Clothing</option>
@@ -164,9 +163,8 @@ export function SupplierProfileForm({
             type="email"
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className={`w-full px-4 py-2 rounded-lg border ${
-              errors.email ? 'border-destructive' : 'border-border'
-            } bg-background focus:outline-none focus:ring-2 focus:ring-primary transition`}
+            className={`w-full px-4 py-2 rounded-lg border ${errors.email ? 'border-destructive' : 'border-border'
+              } bg-background focus:outline-none focus:ring-2 focus:ring-primary transition`}
             placeholder="Enter email"
           />
           {errors.email && (
@@ -181,9 +179,8 @@ export function SupplierProfileForm({
             type="tel"
             value={formData.phone}
             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            className={`w-full px-4 py-2 rounded-lg border ${
-              errors.phone ? 'border-destructive' : 'border-border'
-            } bg-background focus:outline-none focus:ring-2 focus:ring-primary transition`}
+            className={`w-full px-4 py-2 rounded-lg border ${errors.phone ? 'border-destructive' : 'border-border'
+              } bg-background focus:outline-none focus:ring-2 focus:ring-primary transition`}
             placeholder="Enter phone number"
           />
           {errors.phone && (
@@ -200,9 +197,8 @@ export function SupplierProfileForm({
           onChange={(e) =>
             setFormData({ ...formData, address: e.target.value })
           }
-          className={`w-full px-4 py-2 rounded-lg border ${
-            errors.address ? 'border-destructive' : 'border-border'
-          } bg-background focus:outline-none focus:ring-2 focus:ring-primary transition resize-none`}
+          className={`w-full px-4 py-2 rounded-lg border ${errors.address ? 'border-destructive' : 'border-border'
+            } bg-background focus:outline-none focus:ring-2 focus:ring-primary transition resize-none`}
           placeholder="Enter business address"
           rows={3}
         />

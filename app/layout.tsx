@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ReduxProvider } from './redux-provider'
 import { ClientLayout } from './client-layout'
-import { GlobalProgressBar } from '@/components/GlobalProgressBar'
+import { GlobalProgressBar } from '@/components/Reusable_Components/GlobalProgressBar'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '@/lib/slices/authSlice';
 import { RootState } from '@/lib/store';
-import { FiLogOut } from 'react-icons/fi';
+
 import { motion } from 'framer-motion';
 
 interface LogoutButtonProps {
@@ -37,7 +37,7 @@ export function LogoutButton({ variant = 'button', className = '' }: LogoutButto
         className={`p-2 text-muted-foreground hover:text-foreground transition ${className}`}
         title="Logout"
       >
-        <FiLogOut className="w-5 h-5" />
+        Logout
       </motion.button>
     );
   }
@@ -50,7 +50,6 @@ export function LogoutButton({ variant = 'button', className = '' }: LogoutButto
         onClick={handleLogout}
         className={`flex items-center gap-2 px-4 py-2 bg-destructive text-white rounded-lg hover:opacity-90 transition ${className}`}
       >
-        <FiLogOut className="w-4 h-4" />
         <span>Logout</span>
       </motion.button>
     );
@@ -63,7 +62,6 @@ export function LogoutButton({ variant = 'button', className = '' }: LogoutButto
       onClick={handleLogout}
       className={`flex items-center gap-2 px-3 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition ${className}`}
     >
-      <FiLogOut className="w-4 h-4" />
       <span className="font-medium">Logout</span>
     </motion.button>
   );
