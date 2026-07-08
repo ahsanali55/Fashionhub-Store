@@ -6,7 +6,7 @@ interface RegisterUserData {
   fullName: string;
   email: string;
   password: string;
-  role?: "customer" | "supplier" | "admin";
+  role?: "customer" | "supplier";
 }
 
 export const registerUser = async (

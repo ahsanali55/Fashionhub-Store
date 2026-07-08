@@ -64,9 +64,45 @@ export const getCurrentUserProfile = asyncHandler(
 
     res.json(
       {
-        success: true, 
+        success: true,
         user: req.user
       }
     );
   }
 )
+
+// getting the customer dashboard
+export const getCustomerDashboard = asyncHandler(
+  (req, res) => {
+    res.json(
+      {
+        success: true,
+        message: "Welcome Customer!",
+        user: req.user,
+      });
+  }
+);
+
+// getting the supplier dashboard
+export const getSupplierDashboard = asyncHandler(
+  (req, res) => {
+    res.json(
+      {
+        success: true,
+        message: "Welcome Supplier!",
+        user: req.user,
+      });
+  }
+);
+
+// getting the admin dashboard
+export const getAdminDashboard = asyncHandler(
+  (req, res) => {
+    res.json(
+      {
+        success: true,
+        message: "Welcome Admin!",
+        user: req.user,
+      });
+  }
+);
