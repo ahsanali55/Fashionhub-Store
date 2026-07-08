@@ -145,3 +145,137 @@ src/
 │
 ├── routes/
 │   └── auth.routes.ts (updated)
+
+# Implement Secure HttpOnly Cookie Authentication
+Authentication Flow
+User Login
+      │
+      ▼
+Validate Credentials
+      │
+      ▼
+Generate Access Token
+      │
+      ▼
+Generate Refresh Token
+      │
+      ▼
+Save Refresh Token in Database
+      │
+      ▼
+Set HttpOnly Cookies
+      │
+      ▼
+Return User Information
+
+# Now we're going to implement the Refresh Token API.
+
+Why?
+
+Your access token expires after 15 minutes.
+
+Without a refresh token, the user would have to log in again every 15 minutes.
+
+Login
+   │
+   ▼
+Access Token (15 min)
+Refresh Token (7 days)
+   │
+   ▼
+Access Token expires
+   │
+   ▼
+Frontend calls:
+POST /api/v1/auth/refresh-token
+   │
+   ▼
+Backend verifies Refresh Token
+   │
+   ▼
+Issues a new Access Token
+   │
+   ▼
+User stays logged in ✅
+
+# Forgot Password (Generate Reset Token)
+Goal
+
+Implement the first half of the password reset flow.
+
+Flow:
+
+User clicks "Forgot Password"
+        │
+        ▼
+POST /api/v1/auth/forgot-password
+        │
+        ▼
+Find User
+        │
+        ▼
+Generate Secure Reset Token
+        │
+        ▼
+Hash Token
+        │
+        ▼
+Save Hash + Expiry in MongoDB
+        │
+        ▼
+Generate Reset URL
+        │
+        ▼
+(Next step: Email the URL)
+
+#Reset Password
+Goal
+
+Allow users to reset their password using the token received from the Forgot Password endpoint.
+
+Authentication flow:
+
+User clicks reset link
+        │
+        ▼
+Frontend opens:
+http://localhost:3000/reset-password/:token
+        │
+        ▼
+User enters new password
+        │
+        ▼
+POST /api/v1/auth/reset-password/:token
+        │
+        ▼
+Verify Token
+        │
+        ▼
+Check Expiration
+        │
+        ▼
+Hash Password
+        │
+        ▼
+Clear Reset Token
+        │
+        ▼
+Remove Refresh Token
+        │
+        ▼‌‍
+        
+Password Reset Successfully
+
+# Authentication complete enough for your FYP. You already have:
+
+✅ Register
+✅ Login
+✅ JWT Authentication
+✅ Access & Refresh Tokens
+✅ HttpOnly Cookies
+✅ Protected Routes
+✅ Role-Based Authorization
+✅ Forgot Password
+✅ Reset Password
+✅ Current User (/me)
+✅ Logout

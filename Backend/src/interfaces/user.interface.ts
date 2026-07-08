@@ -7,8 +7,13 @@ export interface IUser extends Document {
   email: string;
   password: string;
   role: UserRole;
+  refreshToken?: string | null;
+  passwordResetToken?: string | null;
+  passwordResetExpires?: Date | null;
   avatar?: string;
   isVerified: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 
   comparePassword(candidatePassword: string): Promise<boolean>;
 }

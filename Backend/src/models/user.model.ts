@@ -24,13 +24,23 @@ const userSchema = new Schema<IUser>(
       minlength: 6,
       select: false,
     },
-
+    passwordResetToken: {
+      type: String,
+      default: null,
+    },
+    passwordResetExpires: {
+      type: Date,
+      default: null,
+    },
     role: {
       type: String,
       enum: ["customer", "supplier", "admin"],
       default: "customer",
     },
-
+    refreshToken: {
+      type: String,
+      default: null,
+    },
     avatar: {
       type: String,
       default: "",
