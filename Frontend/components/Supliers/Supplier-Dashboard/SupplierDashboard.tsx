@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
-import { RootState } from '@/lib/store';
+import { RootState } from '@/redux/store';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FiTrendingUp, FiBox, FiDollarSign, FiBarChart2, FiArrowRight } from 'react-icons/fi';

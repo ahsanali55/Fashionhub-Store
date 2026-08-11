@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
-import { RootState } from '@/lib/store';
+import { RootState } from '@/redux/store';
 import { useRouter } from 'next/navigation';
 import { FiSearch, FiCheckCircle, FiXCircle, FiEye, FiTrash2 } from 'react-icons/fi';
 import { useState, useEffect } from 'react';

@@ -3,9 +3,9 @@
 import { motion } from 'framer-motion';
 import { useParams } from 'next/navigation';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '@/lib/store';
-import { addToCart } from '@/lib/slices/cartSlice';
-import { addToWishlist } from '@/lib/slices/wishlistSlice';
+import { RootState } from '@/redux/store';
+import { addToCart } from '@/redux/slices/cartSlice';
+import { addToWishlist } from '@/redux/slices/wishlistSlice';
 import { FiArrowLeft, FiHeart, FiShoppingCart, FiTruck, FiShield, FiStar } from 'react-icons/fi';
 import Link from 'next/link';
 

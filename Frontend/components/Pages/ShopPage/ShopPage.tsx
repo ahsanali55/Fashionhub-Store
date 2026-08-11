@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { FiSearch, FiFilter } from 'react-icons/fi';
 import { ProductDetail } from '@/components/Reusable_Components/ProductDetail';
 import { useSelector } from 'react-redux';
-import { RootState } from '@/lib/store';
+import { RootState } from '@/redux/store';
 
 const containerVariants = {
   hidden: { opacity: 0 },

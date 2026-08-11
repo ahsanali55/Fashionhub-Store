@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '@/lib/store';
-import { toggleCart } from '@/lib/slices/cartSlice';
+import { RootState } from '@/redux/store';
+import { toggleCart } from '@/redux/slices/cartSlice';
 import { FiSearch, FiShoppingCart, FiMenu, FiX, FiHeart, FiUser } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 

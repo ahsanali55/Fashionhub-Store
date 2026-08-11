@@ -2,9 +2,9 @@
 
 import { motion } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '@/lib/store';
+import { RootState } from '@/redux/store';
 import { useRouter } from 'next/navigation';
-import { logout, updateProfile } from '@/lib/slices/authSlice';
+import { logout, updateProfile } from '@/redux/slices/features/auth/authSlice';
 import { FiMail, FiPhone, FiMapPin, FiLogOut } from 'react-icons/fi';
 import { useState } from 'react';
 import { BackButton } from '@/components/Reusable_Components/BackButton';

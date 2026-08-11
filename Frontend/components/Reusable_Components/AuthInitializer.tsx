@@ -2,8 +2,8 @@
 
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '@/lib/store';
-import { setUser, logout } from '@/lib/slices/authSlice';
+import { RootState } from '@/redux/store';
+import { setUser, logout } from '@/redux/slices/features/auth/authSlice';
 
 export function AuthInitializer() {
   const dispatch = useDispatch();

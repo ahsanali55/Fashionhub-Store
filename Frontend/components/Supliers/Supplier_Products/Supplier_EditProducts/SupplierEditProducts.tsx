@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
-import { RootState } from '@/lib/store';
+import { RootState } from '@/redux/store';
 import { FiEdit, FiTrash2, FiPlus, FiSearch } from 'react-icons/fi';
 import Link from 'next/link';
 import { useState } from 'react';

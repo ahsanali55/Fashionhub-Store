@@ -2,12 +2,12 @@
 
 import { motion } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '@/lib/store';
+import { RootState } from '@/redux/store';
 import { useRouter } from 'next/navigation';
 import { FiMail, FiPhone, FiMapPin, FiLogOut } from 'react-icons/fi';
 import { useState } from 'react';
 import { BackButton } from '@/components/Reusable_Components/BackButton';
-import { logout } from '@/lib/slices/authSlice';
+import { logout } from '@/redux/slices/features/auth/authSlice';
 
 const containerVariants = {
   hidden: { opacity: 0 },

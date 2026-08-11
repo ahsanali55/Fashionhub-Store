@@ -2,8 +2,8 @@
 
 import { motion } from 'framer-motion';
 import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '@/lib/store';
-import { logout } from '@/lib/slices/authSlice';
+import { RootState } from '@/redux/store';
+import { logout } from '@/redux/slices/features/auth/authSlice';
 import { useRouter } from 'next/navigation';
 import { FiLogOut, FiPackage, FiHeart, FiUser, FiSettings, FiBarChart2, FiPlus, FiEdit, FiTrendingUp } from 'react-icons/fi';
 import Link from 'next/link';

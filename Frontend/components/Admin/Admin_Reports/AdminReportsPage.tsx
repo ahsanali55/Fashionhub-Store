@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
-import { RootState } from '@/lib/store';
+import { RootState } from '@/redux/store';
 import { useRouter } from 'next/navigation';
 import { FiBox, FiHeart, FiDollarSign, FiUsers, FiPackage } from 'react-icons/fi';
 import { BackButton } from '@/components/Reusable_Components/BackButton';

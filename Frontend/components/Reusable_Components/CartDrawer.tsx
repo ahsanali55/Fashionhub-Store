@@ -1,8 +1,8 @@
 'use client';
 
 import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '@/lib/store';
-import { removeFromCart, updateQuantity, toggleCart, clearCart } from '@/lib/slices/cartSlice';
+import { RootState } from '@/redux/store';
+import { removeFromCart, updateQuantity, toggleCart, clearCart } from '@/redux/slices/cartSlice';
 import { FiX, FiTrash2, FiCheck } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';

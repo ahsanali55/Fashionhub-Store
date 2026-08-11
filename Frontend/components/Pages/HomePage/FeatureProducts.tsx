@@ -2,7 +2,7 @@ import React from 'react'
 
 import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
-import { RootState } from '@/lib/store';
+import { RootState } from '@/redux/store';
 import { ProductCard } from '@/components/Reusable_Components/ProductCard';
 const containerVariants = {
   hidden: { opacity: 0 },

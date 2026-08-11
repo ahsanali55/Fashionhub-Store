@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { FiArrowRight, FiTruck, FiShield, FiHeadphones, FiCheck, FiStar } from 'react-icons/fi';
 import { ProductCard } from '@/components/Reusable_Components/ProductCard';
 import { useSelector } from 'react-redux';
-import { RootState } from '@/lib/store';
+import { RootState } from '@/redux/store';
 import { TestimonialsSection } from '@/components/Pages/HomePage/TestimonialsSection';
 import WhyChooseUs from '@/components/Pages/HomePage/WhyChooseUs';
 import Categories from '@/components/Pages/HomePage/Categories';

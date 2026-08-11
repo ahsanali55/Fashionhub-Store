@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import { useRouter, useParams } from 'next/navigation';
 import { useSelector } from 'react-redux';
-import { RootState } from '@/lib/store';
+import { RootState } from '@/redux/store';
 import { FiArrowLeft, FiImage, FiDollarSign, FiHash, FiSave } from 'react-icons/fi';
 import Link from 'next/link';
 import { useState } from 'react';

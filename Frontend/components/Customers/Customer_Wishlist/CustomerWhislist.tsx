@@ -2,9 +2,9 @@
 
 import { motion } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '@/lib/store';
-import { removeFromWishlist } from '@/lib/slices/wishlistSlice';
-import { addToCart } from '@/lib/slices/cartSlice';
+import { RootState } from '@/redux/store';
+import { removeFromWishlist } from '@/redux/slices/wishlistSlice';
+import { addToCart } from '@/redux/slices/cartSlice';
 import { useRouter } from 'next/navigation';
 import { FiTrash2, FiShoppingCart } from 'react-icons/fi';
 import { EmptyState } from '@/components/Reusable_Components/EmptyState';

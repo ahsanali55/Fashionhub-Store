@@ -3,10 +3,10 @@
 import { motion } from 'framer-motion';
 import { FiHeart, FiShoppingCart } from 'react-icons/fi';
 import { useDispatch, useSelector } from 'react-redux';
-import { addToCart } from '@/lib/slices/cartSlice';
-import { addToWishlist, removeFromWishlist } from '@/lib/slices/wishlistSlice';
-import { RootState } from '@/lib/store';
-import { Product } from '@/lib/slices/productsSlice';
+import { addToCart } from '@/redux/slices/cartSlice';
+import { addToWishlist, removeFromWishlist } from '@/redux/slices/wishlistSlice';
+import { RootState } from '@/redux/store';
+import { Product } from '@/redux/slices/productsSlice';
 import Link from 'next/link';
 import { FiStar } from 'react-icons/fi';
 import { useState } from 'react';

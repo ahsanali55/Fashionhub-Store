@@ -2,8 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
-import { logout } from '@/lib/slices/authSlice';
-import { RootState } from '@/lib/store';
+import { logout } from '@/redux/slices/features/auth/authSlice';
+import { RootState } from '@/redux/store';
 
 import { motion } from 'framer-motion';
 
