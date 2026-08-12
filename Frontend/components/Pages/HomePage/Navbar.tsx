@@ -2,22 +2,36 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
 import { toggleCart } from '@/redux/slices/cartSlice';
 import { FiSearch, FiShoppingCart, FiMenu, FiX, FiHeart, FiUser } from 'react-icons/fi';
 import { motion } from 'framer-motion';
+import { useAppDispatch, useAppSelector } from '@/hooks/redux';
+import { searchProducts } from '@/redux/slices/productsSlice';
 
 
 export function Navbar() {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchproduct, setSearchproduct] = useState("");
   const [scrolled, setScrolled] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const cart = useSelector((state: RootState) => state.cart);
-  const auth = useSelector((state: RootState) => state.auth);
-  const wishlist = useSelector((state: RootState) => state.wishlist);
+  const products = useAppSelector((state: RootState) => state.products.items);
+  const cart = useAppSelector((state: RootState) => state.cart);
+  const auth = useAppSelector((state: RootState) => state.auth);
+  const wishlist = useAppSelector((state: RootState) => state.wishlist);
+
+
+  const product = products.filter((item) =>
+    item.name.toLowerCase().includes(searchproduct.toLowerCase())
+  );
+
+  if (!product) {
+    return <p>Product not found</p>;
+  }
+
+  console.log("Search Product through Navbar ", product);
 
   useEffect(() => {
     setIsMounted(true);
@@ -49,6 +63,10 @@ export function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-12">
+            <Link href="/" className="text-sm font-semibold text-foreground hover:text-accent transition relative group">
+              Home
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-accent group-hover:w-full transition-all duration-300"></span>
+            </Link>
             <Link href="/shop" className="text-sm font-semibold text-foreground hover:text-accent transition relative group">
               Shop
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-accent group-hover:w-full transition-all duration-300"></span>
@@ -58,7 +76,7 @@ export function Navbar() {
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-accent group-hover:w-full transition-all duration-300"></span>
             </Link>
             <Link href="/about" className="text-sm font-semibold text-foreground hover:text-accent transition relative group">
-              About
+              About Us
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-accent group-hover:w-full transition-all duration-300"></span>
             </Link>
           </div>
@@ -75,7 +93,10 @@ export function Navbar() {
                 type="text"
                 placeholder="Search products..."
                 className="w-full px-4 py-2 rounded-lg bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-accent text-sm"
+                value={searchproduct}
+                onChange={(e) => setSearchproduct(e.target.value)}
               />
+
             </motion.div>
           )}
 
@@ -132,7 +153,7 @@ export function Navbar() {
                 >
                   <FiUser className="w-5 h-5" />
                 </Link>
-        
+
               </div>
             ) : (
               <Link href="/login" className="p-2 hover:bg-secondary rounded-lg transition hover:text-accent" title="Account">

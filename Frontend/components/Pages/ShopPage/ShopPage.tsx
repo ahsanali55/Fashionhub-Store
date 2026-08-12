@@ -4,9 +4,9 @@ import { motion } from 'framer-motion';
 import { useState } from 'react';
 import Link from 'next/link';
 import { FiSearch, FiFilter } from 'react-icons/fi';
-import { ProductDetail } from '@/components/Reusable_Components/ProductDetail';
-import { useSelector } from 'react-redux';
+import { ProductCard } from '@/components/Pages/ShopPage/ProductCard';
 import { RootState } from '@/redux/store';
+import { useAppSelector } from '@/hooks/redux';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -19,7 +19,7 @@ const itemVariants = {
 };
 
 export default function ShopPage() {
-  const products = useSelector((state: RootState) => state.products);
+  const products = useAppSelector((state: RootState) => state.products);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
@@ -121,7 +121,7 @@ export default function ShopPage() {
           {sortedProducts.length > 0 ? (
             sortedProducts.map((product) => (
               <motion.div key={product.id} variants={itemVariants}>
-                <ProductDetail product={product} />
+                <ProductCard product={product} />
               </motion.div>
             ))
           ) : (

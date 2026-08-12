@@ -21,7 +21,7 @@ interface ProductDetailProps {
   onAddToWishlist?: () => void;
 }
 
-export function ProductDetail({ product, onAddToCart, onAddToWishlist }: ProductDetailProps) {
+export function ProductCard({ product, onAddToCart, onAddToWishlist }: ProductDetailProps) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
