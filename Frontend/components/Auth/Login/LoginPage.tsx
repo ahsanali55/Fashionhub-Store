@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useDispatch, useSelector } from 'react-redux';
-import { login } from '@/redux/slices/features/auth/authSlice';
+import { login, setUser, } from '@/redux/slices/features/auth/authSlice';
 import { useRouter } from 'next/navigation';
 import { FiMail, FiLock } from 'react-icons/fi';
 import { RootState } from '@/redux/store';
@@ -37,7 +37,7 @@ export default function LoginPage() {
 
   if (login.fulfilled.match(result)) {
     const user = result.payload;
-
+      dispatch(setUser(user)); // Update the user in the Redux store
     if (user.role === "customer") {
       router.push("/customer/dashboard");
     } else if (user.role === "supplier") {

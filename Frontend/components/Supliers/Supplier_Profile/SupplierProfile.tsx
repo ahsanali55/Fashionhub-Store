@@ -1,14 +1,14 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/redux/store';
 import { useRouter } from 'next/navigation';
-import { logout, updateProfile } from '@/redux/slices/features/auth/authSlice';
+import { logout } from '@/redux/slices/features/auth/authSlice';
 import { FiMail, FiPhone, FiMapPin, FiLogOut } from 'react-icons/fi';
 import { useState } from 'react';
 import { BackButton } from '@/components/Reusable_Components/BackButton';
 import { SupplierProfileForm } from '@/components/Reusable_Components/SupplierProfileForm';
+import { useAppDispatch, useAppSelector } from '@/hooks/redux';
 
 
 const containerVariants = {
@@ -23,8 +23,8 @@ const itemVariants = {
 
 export default function SupplierProfilePage() {
   const router = useRouter();
-  const dispatch = useDispatch();
-  const auth = useSelector((state: RootState) => state.auth);
+  const dispatch = useAppDispatch();
+  const auth = useAppSelector((state: RootState) => state.auth);
   const [isEditing, setIsEditing] = useState(false);
 
   if (!auth.isAuthenticated || auth.user?.role !== 'supplier') {
@@ -47,15 +47,8 @@ export default function SupplierProfilePage() {
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    dispatch(
-      updateProfile({
-        businessName: formData.businessName,
-        category: formData.category,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-      })
-    );
+    // TODO: add API call for profile update.
+    console.log('Profile saved', formData);
   };
 
   return (

@@ -9,6 +9,7 @@ import { FiShoppingBag, FiHeart, FiTrendingUp, FiSettings, FiArrowRight } from '
 import { LogoutButton } from '@/components/Reusable_Components/LogoutButton';
 import { useEffect, useState } from 'react';
 import { LoadingSpinner } from '@/components/Admin/Loaders/LoadingSpinner';
+import { useAppSelector } from '@/hooks/redux';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -22,10 +23,10 @@ const itemVariants = {
 
 export default function CustomerDashboardPage() {
   const router = useRouter();
-  const auth = useSelector((state: RootState) => state.auth);
-  const cart = useSelector((state: RootState) => state.cart);
-  const wishlist = useSelector((state: RootState) => state.wishlist);
-  const orders = useSelector((state: RootState) => state.orders);
+  const auth = useAppSelector((state: RootState) => state.auth);
+  const cart = useAppSelector((state: RootState) => state.cart);
+  const wishlist = useAppSelector((state: RootState) => state.wishlist);
+  const orders = useAppSelector((state: RootState) => state.orders);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
 
@@ -62,7 +63,7 @@ export default function CustomerDashboardPage() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <h1 className="text-4xl font-bold mb-2">Welcome back, {auth.user?.name}!</h1>
+            <h1 className="text-4xl font-bold mb-2">Welcome back, {auth.user?.fullName}!</h1>
             <p className="text-muted-foreground">Here&apos;s your personalized dashboard</p>
           </motion.div>
           <LogoutButton variant="full" />

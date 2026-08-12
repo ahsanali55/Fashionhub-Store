@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
-import { ReduxProvider } from './redux-provider'
 import { ClientLayout } from './client-layout'
 import { GlobalProgressBar } from '@/components/Reusable_Components/GlobalProgressBar'
 import './globals.css'
+import AuthProvider, { ReduxProvider } from './redux-provider'
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -42,7 +42,9 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <GlobalProgressBar />
         <ReduxProvider>
-          <ClientLayout>{children}</ClientLayout>
+          <AuthProvider>
+            <ClientLayout>{children}</ClientLayout>
+          </AuthProvider>
         </ReduxProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

@@ -64,7 +64,7 @@ export const fetchCurrentUser = createAsyncThunk<
 >("auth/fetchCurrentUser", async (_, { rejectWithValue }) => {
   try {
     const response = await getCurrentUser();
-
+    console.log("getCurrentUser response: ", response.data);
     return response.data.user;
   } catch (error: any) {
     return rejectWithValue(
@@ -157,6 +157,7 @@ const authSlice = createSlice({
     builder
       .addCase(fetchCurrentUser.pending, (state) => {
         state.isLoading = true;
+        state.error = null;
       })
 
       .addCase(fetchCurrentUser.fulfilled, (state, action) => {

@@ -3,15 +3,15 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { useDispatch } from 'react-redux';
 import { register } from '@/redux/slices/features/auth/authSlice';
 import { useRouter } from 'next/navigation';
 import { FiMail, FiLock, FiUser } from 'react-icons/fi';
+import { useAppDispatch } from '@/hooks/redux';
 
 export default function RegisterPage() {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const router = useRouter();
-  const [name, setName] = useState('');
+  const [fullName, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -34,15 +34,26 @@ export default function RegisterPage() {
     }
 
     setLoading(true);
-    setTimeout(() => {
-      dispatch(register({ name, email, password, role }));
+    setTimeout(async () => {
+      const result = await dispatch(
+        register({
+          fullName,
+          email,
+          password,
+        })
+      );
       setLoading(false);
       // Route to correct dashboard based on role
-      if (role === 'customer') {
-        router.push('/customer/dashboard');
-      } else if (role === 'supplier') {
-        router.push('/supplier/dashboard');
-      }
+      if (register.fulfilled.match(result)) {
+        const user = result.payload;
+
+        if (user.role === "customer") {
+          router.push("/customer/dashboard");
+        } else if (role === 'supplier') {
+          router.push('/supplier/dashboard');
+        }
+        
+        }
     }, 800);
   };
 
@@ -76,7 +87,7 @@ export default function RegisterPage() {
                 <FiUser className="text-muted-foreground" />
                 <input
                   type="text"
-                  value={name}
+                  value={fullName}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="John Doe"
                   className="flex-1 bg-transparent focus:outline-none text-sm"

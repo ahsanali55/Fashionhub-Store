@@ -50,7 +50,6 @@ export const getCurrentUser = async (): Promise<AuthResponse> => {
   const response = await api.get<AuthResponse>(
     "/auth/me"
   );
-
   return response.data;
 };
 

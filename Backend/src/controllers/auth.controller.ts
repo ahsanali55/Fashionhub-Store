@@ -15,6 +15,8 @@ import { resetPassword } from "../services/auth.service";
 // Register controller
 export const register = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
+    console.log("Register request ", req.body);
+
     const user = await registerUser(req.body);
     const accessToken = generateAccessToken(
       user._id.toString(),
@@ -40,9 +42,11 @@ export const register = asyncHandler(
 // Login controller
 export const login = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
+    console.log("Login request ", req.body);
     const user = await loginUser(req.body);
 
-    const accessToken = generateAccessToken(user._id.toString(), user.role); const refreshToken = generateRefreshToken(user._id.toString());
+    const accessToken = generateAccessToken(user._id.toString(), user.role); 
+    const refreshToken = generateRefreshToken(user._id.toString());
 
     // Save refresh token in database
     await User.findByIdAndUpdate(user._id, {
@@ -82,6 +86,7 @@ export const getCurrentUserProfile = asyncHandler(
     req: Request,
     res: Response
   ): Promise<void> => {
+    console.log("Getting current user profile request ");
 
     res.json(
       {
@@ -95,6 +100,8 @@ export const getCurrentUserProfile = asyncHandler(
 // getting the customer dashboard
 export const getCustomerDashboard = asyncHandler(
   (req, res) => {
+    console.log("Getting customer dashboard request ", req.body);
+
     res.json(
       {
         success: true,
@@ -107,6 +114,8 @@ export const getCustomerDashboard = asyncHandler(
 // getting the supplier dashboard
 export const getSupplierDashboard = asyncHandler(
   (req, res) => {
+    console.log("Getting supplier dashboard request ", req.body);
+
     res.json(
       {
         success: true,
@@ -119,6 +128,8 @@ export const getSupplierDashboard = asyncHandler(
 // getting the admin dashboard
 export const getAdminDashboard = asyncHandler(
   (req, res) => {
+    console.log("Getting admin dashboard request ", req.body);
+
     res.json(
       {
         success: true,
@@ -131,6 +142,7 @@ export const getAdminDashboard = asyncHandler(
 // refresh access token controller
 export const refreshToken = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
+    console.log("Refresh token request ", req.body);
 
     const refreshTokenCookie = req.cookies.refreshToken;
     const user = await refreshAccessToken(refreshTokenCookie);
@@ -147,6 +159,7 @@ export const refreshToken = asyncHandler(
 // logout controller
 export const logout = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
+    console.log("Logout request ", req.body);
     if (!req.user) {
       throw new ApiError(401, "Unauthorized");
     }
@@ -167,6 +180,7 @@ export const getCurrentUser = asyncHandler(
     if (!req.user) {
       throw new ApiError(401, "Unauthorized");
     }
+    console.log("Getting current user profile request ", req.body);
     res.status(200).json(
       new ApiResponse("Current user fetched successfully.", {
         user: {
@@ -186,7 +200,7 @@ export const getCurrentUser = asyncHandler(
 // Forgot Password controller
 export const forgotPasswordController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-
+    console.log("Forgot password request ", req.body);
     const { email } = req.body;
 
     const { resetToken } =
@@ -209,6 +223,7 @@ export const forgotPasswordController = asyncHandler(
 // Reset Passward
 export const resetPasswordController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
+    console.log("Reset password request ", req.body);
     const { token } = req.params;
     const { password } = req.body;
     if (Array.isArray(token)) {
