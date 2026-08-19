@@ -2,129 +2,269 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { FiArrowRight } from 'react-icons/fi';
+// Added FiChevronDown for the new scroll indicator
+import { FiArrowRight, FiChevronDown } from 'react-icons/fi';
 
 interface HeroProps {
-  title: string;
-  subtitle: string;
+  title?: string;
+  subtitle?: string;
   backgroundImage?: string;
   ctaText?: string;
   ctaLink?: string;
-  showTransparentNavbar?: boolean;
 }
 
 export function HeroSection({
-  title,
-  subtitle,
-  backgroundImage = 'https://media.istockphoto.com/id/488178539/photo/brand-new-interior-of-cloth-store.jpg?s=2048x2048&w=is&k=20&c=hdbKZLJxyhbjVyOVrZh3FC0p_pW1xdl54y-y7tjNeEs=',
+  title = 'Premium Fashion.',
+  subtitle = 'Discover quality fashion from trusted suppliers and find your next favorite look.',
+backgroundImage = 'https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?q=80&w=2070&auto=format&fit=crop',
   ctaText = 'Shop Now',
   ctaLink = '/shop',
-  showTransparentNavbar = true,
 }: HeroProps) {
   const containerVariants = {
-    hidden: { opacity: 0 },
+    hidden: {},
     visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1, delayChildren: 0.2 },
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.15,
+      },
     },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+    hidden: {
+      opacity: 0,
+      y: 20,
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.55,
+        ease: 'easeOut',
+      },
+    },
+  };
+
+  // Function to smoothly scroll down when the indicator is clicked
+  const scrollToNextSection = () => {
+    window.scrollBy({ top: window.innerHeight, behavior: 'smooth' });
   };
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+    // Changed to min-h-screen so it covers the entire viewport height
+    <section className="relative min-h-screen flex items-center overflow-hidden">
 
- 
-        {/* Background Image with Overlay */}
-        <div
-          className="absolute inset-0 z-0"
-          style={{
-            backgroundImage: 'url(https://media.istockphoto.com/id/488178539/photo/brand-new-interior-of-cloth-store.jpg?s=2048x2048&w=is&k=20&c=hdbKZLJxyhbjVyOVrZh3FC0p_pW1xdl54y-y7tjNeEs=)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundAttachment: 'fixed',
-          }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-          
-        </div>
+      {/* ==========================================
+          Background Image
+          ========================================== */}
 
-        {/* Hero Content */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="relative z-10  text-center max-w-4xl mx-auto px-4 sm:px-6"
-        >
-          <motion.div
-            variants={itemVariants}
-            className="inline-block px-4 py-2 bg-accent/20 border border-accent rounded-full mb-6 backdrop-blur-sm "
-          >
-            <span className="text-accent font-semibold text-sm">Welcome to FashionHub</span>
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage: `url(${backgroundImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      />
+
+      {/* ==========================================
+          Image Overlay
+          ========================================== */}
+
+      <div className="absolute inset-0 bg-black/45" />
+
+      {/* Left-to-right gradient for readable text */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-black/10" />
+
+      {/* Bottom fade */}
+      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/40 to-transparent" />
+
+      {/* ==========================================
+          Hero Content
+          ========================================== */}
+
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="
+          relative z-10
+          w-full
+          max-w-7xl
+          mx-auto
+          px-4 sm:px-6 lg:px-8
+          py-24
+        "
+      >
+        <div className="max-w-3xl">
+
+          {/* Small Brand Label */}
+
+          <motion.div variants={itemVariants}>
+            <span
+              className="
+                inline-flex
+                items-center
+                gap-2
+                px-3.5
+                py-1.5
+                mb-6
+                rounded-full
+                bg-white/10
+                border border-white/20
+                backdrop-blur-md
+                text-sm
+                font-semibold
+                text-white
+              "
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+              Welcome to FashionHub
+            </span>
           </motion.div>
+
+          {/* Heading */}
 
           <motion.h1
             variants={itemVariants}
-            className="text-5xl md:text-7xl lg:text-8xl font-black text-white text-balance leading-tight mb-6"
+            className="
+              text-5xl
+              sm:text-6xl
+              md:text-7xl
+              lg:text-8xl
+              font-black
+              tracking-tight
+              leading-[0.95]
+              text-white
+              mb-6
+            "
           >
-            Premium Fashion,{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-emerald-300">
-              Limitless Style
+            {title}
+            <br />
+
+            <span className="text-primary">
+              Limitless Style.
             </span>
           </motion.h1>
 
+          {/* Description */}
+
           <motion.p
             variants={itemVariants}
-            className="text-lg md:text-xl text-gray-200 max-w-2xl mx-auto mb-12"
+            className="
+              max-w-xl
+              text-base
+              sm:text-lg
+              leading-7
+              text-white/75
+              mb-9
+            "
           >
-            Discover curated collections from world-class suppliers. Elevate your wardrobe with premium quality and exclusive designs.
+            {subtitle}
           </motion.p>
+
+          {/* Buttons */}
 
           <motion.div
             variants={itemVariants}
-            className="flex flex-col sm:flex-row items-center justify-center gap-6"
+            className="flex flex-col sm:flex-row items-start gap-3"
           >
             <Link
-              href="/shop"
-              className="px-8 py-4 bg-accent text-black font-bold rounded-lg hover:opacity-90 transition flex items-center gap-2 group"
+              href={ctaLink}
+              className="
+                inline-flex
+                items-center
+                justify-center
+                gap-2
+                h-12
+                px-7
+                rounded-lg
+                bg-primary
+                text-white
+                text-sm
+                font-bold
+                shadow-lg
+                shadow-black/20
+                hover:bg-orange-600
+                transition-all
+                group
+              "
             >
-              Shop Now
-              <FiArrowRight className="group-hover:translate-x-1 transition" />
+              {ctaText}
+
+              <FiArrowRight
+                className="
+                  w-4 h-4
+                  transition-transform
+                  group-hover:translate-x-1
+                "
+              />
             </Link>
+
+            {/* Secondary CTA */}
+
             <Link
               href="/categories"
-              className="px-8 py-4 border-2 border-white text-white font-bold rounded-lg hover:bg-white hover:text-black transition"
+              className="
+                inline-flex
+                items-center
+                justify-center
+                h-12
+                px-7
+                rounded-lg
+                border
+                border-white/30
+                bg-white/5
+                backdrop-blur-sm
+                text-white
+                text-sm
+                font-semibold
+                hover:bg-white
+                hover:text-black
+                transition-all
+              "
             >
-              Explore Collections
+              Explore Categories
             </Link>
           </motion.div>
-        </motion.div>
 
-        {/* Scroll Indicator */}
-        <motion.div
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-white opacity-60"
-        >
-          <div className="w-6 h-10 border-2 border-white rounded-full flex items-center justify-center">
-            <div className="w-1 h-2 bg-white rounded-full" />
-          </div>
-        </motion.div>
+        </div>
+      </motion.div>
 
-      {/* Scroll Indicator */}
+      {/* ==========================================
+          Scroll Indicator (Now Functional!)
+          ========================================== */}
+
       <motion.div
         animate={{ y: [0, 10, 0] }}
-        transition={{ duration: 2, repeat: Infinity }}
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white z-20"
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+        onClick={scrollToNextSection}
+        className="
+          absolute
+          bottom-10
+          left-1/2
+          -translate-x-1/2
+          z-10
+          hidden sm:flex
+          flex-col
+          items-center
+          gap-2
+          text-white/70
+          hover:text-primary
+          cursor-pointer
+          transition-colors
+        "
       >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-        </svg>
+        <span className="text-[10px] uppercase tracking-[0.2em] font-semibold">
+          Scroll
+        </span>
+        <FiChevronDown className="w-6 h-6" />
       </motion.div>
+
     </section>
   );
 }

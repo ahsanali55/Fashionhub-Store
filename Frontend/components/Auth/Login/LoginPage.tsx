@@ -91,7 +91,7 @@ export default function LoginPage() {
             {/* Email */}
             <div>
               <label className="block text-sm font-medium mb-2">Email</label>
-              <div className="flex items-center gap-3 px-4 py-3 bg-secondary rounded-lg border border-border focus-within:ring-2 focus-within:ring-primary">
+              <div className="flex items-center gap-3 px-4 py-3 bg-muted rounded-lg border border-border focus-within:ring-2 focus-within:ring-primary">
                 <FiMail className="text-muted-foreground" />
                 <input
                   type="email"
@@ -107,7 +107,7 @@ export default function LoginPage() {
             {/* Password */}
             <div>
               <label className="block text-sm font-medium mb-2">Password</label>
-              <div className="flex items-center gap-3 px-4 py-3 bg-secondary rounded-lg border border-border focus-within:ring-2 focus-within:ring-primary">
+              <div className="flex items-center gap-3 px-4 py-3 bg-muted rounded-lg border border-border focus-within:ring-2 focus-within:ring-primary">
                 <FiLock className="text-muted-foreground" />
                 <input
                   type="password"

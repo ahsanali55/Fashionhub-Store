@@ -13,7 +13,7 @@ interface RegisterData {
   fullName: string;
   email: string;
   password: string;
-  role?: "customer";
+role: "customer" | "supplier";
 }
 
 interface LoginData {
@@ -26,10 +26,7 @@ export const registerCustomer = async (
 ): Promise<AuthResponse> => {
   const response = await api.post<AuthResponse>(
     "/auth/register",
-    {
-      ...data,
-      role: "customer",
-    }
+    data
   );
 
   return response.data;

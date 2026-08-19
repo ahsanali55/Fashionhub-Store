@@ -1,89 +1,120 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FiMail, FiPhone, FiMapPin } from 'react-icons/fi';
-import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from 'react-icons/fa';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/store';
+import { FashionHubLogo } from '@/components/Reusable_Components/FashionHubLogo';
 
 export function Footer() {
+  const auth = useSelector((state: RootState) => state.auth);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const isLoggedIn = isMounted && auth.isAuthenticated;
+  const role = auth.user?.role;
+
+  let accountLabel = 'Account';
+  let accountLinks: { label: string; href: string }[] = [
+    { label: 'Sign In', href: '/login' },
+    { label: 'Create Account', href: '/register' },
+    { label: 'Browse Products', href: '/shop' },
+  ];
+
+  if (isLoggedIn && role === 'customer') {
+    accountLabel = 'My Account';
+    accountLinks = [
+      { label: 'Dashboard', href: '/customer/dashboard' },
+      { label: 'My Orders', href: '/customer/orders' },
+      { label: 'Wishlist', href: '/customer/wishlist' },
+    ];
+  } else if (isLoggedIn && role === 'supplier') {
+    accountLabel = 'Supplier Tools';
+    accountLinks = [
+      { label: 'Dashboard', href: '/supplier/dashboard' },
+      { label: 'My Products', href: '/supplier/products' },
+      { label: 'Orders', href: '/supplier/orders' },
+    ];
+  } else if (isLoggedIn && role === 'admin') {
+    accountLabel = 'Admin Tools';
+    accountLinks = [
+      { label: 'Dashboard', href: '/admin/dashboard' },
+      { label: 'Manage Users', href: '/admin/users' },
+      { label: 'Reports', href: '/admin/reports' },
+    ];
+  }
+
   return (
-    <footer className="bg-foreground text-white py-12">
+    <footer className="bg-[#18181B] text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+
+        {/* Main Footer */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 py-12">
+
           {/* Brand */}
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">F</span>
-              </div>
-              <span className="font-bold text-lg">FashionHub</span>
-            </div>
-            <p className="text-sm text-gray-300">Your destination for premium fashion from suppliers worldwide.</p>
+          <div className="lg:col-span-2">
+            <Link href="/" className="inline-flex items-center gap-2.5 group">
+              <span className="text-xl font-extrabold tracking-tight">
+                Fashion
+                <span className="text-primary">Hub</span>
+              </span>
+            </Link>
+
+            <p className="mt-4 max-w-md text-sm leading-6 text-zinc-400">
+              Discover fashion from trusted suppliers, explore products,
+              and shop everything you love in one place.
+            </p>
           </div>
 
-          {/* Quick Links */}
+          {/* Shop */}
           <div>
-            <h4 className="font-semibold mb-4">Quick Links</h4>
-            <ul className="space-y-2 text-sm text-gray-300">
-              <li><Link href="/shop" className="hover:text-white transition">Shop</Link></li>
-              <li><Link href="/categories" className="hover:text-white transition">Categories</Link></li>
-              <li><Link href="/about" className="hover:text-white transition">About Us</Link></li>
-              <li><Link href="/contact" className="hover:text-white transition">Contact</Link></li>
+            <h3 className="text-sm font-bold text-white mb-4">Shop</h3>
+            <ul className="space-y-3 text-sm">
+              <li>
+                <Link href="/shop" className="text-zinc-400 hover:text-primary transition-colors">
+                  All Products
+                </Link>
+              </li>
+              <li>
+                <Link href="/categories" className="text-zinc-400 hover:text-primary transition-colors">
+                  Categories
+                </Link>
+              </li>
+              <li>
+                <Link href="/wishlist" className="text-zinc-400 hover:text-primary transition-colors">
+                  Wishlist
+                </Link>
+              </li>
             </ul>
           </div>
 
-          {/* Support */}
+          {/* Account - dynamic by role */}
           <div>
-            <h4 className="font-semibold mb-4">Support</h4>
-            <ul className="space-y-2 text-sm text-gray-300">
-              <li><Link href="/faq" className="hover:text-white transition">FAQ</Link></li>
-              <li><Link href="/shipping" className="hover:text-white transition">Shipping Info</Link></li>
-              <li><Link href="/returns" className="hover:text-white transition">Returns</Link></li>
-              <li><Link href="/privacy" className="hover:text-white transition">Privacy Policy</Link></li>
-            </ul>
-          </div>
-
-          {/* Contact */}
-          <div>
-            <h4 className="font-semibold mb-4">Contact Us</h4>
-            <ul className="space-y-3 text-sm text-gray-300">
-              <li className="flex items-center gap-2">
-                <FiPhone className="w-4 h-4" />
-                <span>1-800-FASHION</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <FiMail className="w-4 h-4" />
-                <span>hello@fashionhub.com</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <FiMapPin className="w-4 h-4 mt-1" />
-                <span>123 Fashion St, Style City, SC 12345</span>
-              </li>
+            <h3 className="text-sm font-bold text-white mb-4">{accountLabel}</h3>
+            <ul className="space-y-3 text-sm">
+              {accountLinks.map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className="text-zinc-400 hover:text-primary transition-colors">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-gray-700 pt-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-gray-300">&copy; 2024 FashionHub. All rights reserved.</p>
-            
-            {/* Social Links */}
-            <div className="flex items-center gap-4">
-              <a href="#" className="text-gray-300 hover:text-white transition">
-                <FaFacebook className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-gray-300 hover:text-white transition">
-                <FaTwitter className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-gray-300 hover:text-white transition">
-                <FaInstagram className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-gray-300 hover:text-white transition">
-                <FaLinkedin className="w-5 h-5" />
-              </a>
-            </div>
+        <div className="border-t border-zinc-800 py-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-xs text-zinc-500">
+              © {new Date().getFullYear()} FashionHub. All rights reserved.
+            </p>
+            <p className="text-xs text-zinc-500">Fashion Marketplace</p>
           </div>
         </div>
+
       </div>
     </footer>
   );

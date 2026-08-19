@@ -17,6 +17,7 @@ interface RegisterPayload {
   fullName: string;
   email: string;
   password: string;
+  role: "customer" | "supplier";
 }
 
 interface LoginPayload {
