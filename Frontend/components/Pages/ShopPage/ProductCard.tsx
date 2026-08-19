@@ -1,106 +1,203 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { FiArrowRight, FiHeart, FiShoppingCart } from 'react-icons/fi';
 import Link from 'next/link';
+import {
+  FiArrowUpRight,
+  FiHeart,
+  FiShoppingBag,
+} from 'react-icons/fi';
 
 interface Product {
   id: number;
   name: string;
+  brand?: string;
+  category?: string;
   price: number;
   image: string;
   rating?: number;
   reviews?: number;
-  category?: string;
-  inStock?: boolean;
+  stock: number;
+  createdAt?: string;
 }
 
-interface ProductDetailProps {
+interface ProductCardProps {
   product: Product;
   onAddToCart?: () => void;
   onAddToWishlist?: () => void;
 }
 
-export function ProductCard({ product, onAddToCart, onAddToWishlist }: ProductDetailProps) {
+export function ProductCard({
+  product,
+  onAddToCart,
+  onAddToWishlist,
+}: ProductCardProps) {
+  const isNew =
+    product.createdAt &&
+    Date.now() -
+      new Date(product.createdAt).getTime() <
+      14 * 24 * 60 * 60 * 1000;
+
+  const outOfStock = product.stock <= 0;
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="bg-card rounded-lg overflow-hidden shadow-sm"
+    <motion.article
+      whileHover={{ y: -4 }}
+      transition={{ duration: 0.2 }}
+      className="group"
     >
       {/* Image */}
-      <div className="relative aspect-square bg-secondary overflow-hidden">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-full object-cover hover:scale-110 transition duration-300"
-        />
-        <motion.div
-          initial={{ opacity: 0, top: -20 }}
-          animate={{ opacity: 1, top: 12 }}
-          className="absolute right-4 top-3 bg-white text-black px-3 py-1 rounded-full text-sm font-bold"
+      <div className="relative aspect-[4/5] overflow-hidden rounded-xl bg-muted">
+
+        <Link href={`/product/${product.id}`}>
+          <img
+            src={product.image}
+            alt={product.name}
+            className="
+              w-full
+              h-full
+              object-cover
+              transition-transform
+              duration-500
+              group-hover:scale-105
+            "
+          />
+        </Link>
+
+        {/* Badges */}
+        <div className="absolute top-3 left-3 flex flex-col gap-2">
+          {isNew && (
+            <span className="px-2.5 py-1 rounded-full bg-white text-foreground text-[11px] font-bold">
+              NEW
+            </span>
+          )}
+
+          {outOfStock && (
+            <span className="px-2.5 py-1 rounded-full bg-foreground text-white text-[11px] font-bold">
+              SOLD OUT
+            </span>
+          )}
+        </div>
+
+        {/* Wishlist */}
+        <button
+          onClick={onAddToWishlist}
+          aria-label="Add to wishlist"
+          className="
+            absolute
+            top-3
+            right-3
+            w-10
+            h-10
+            rounded-full
+            bg-white/95
+            flex
+            items-center
+            justify-center
+            text-foreground
+            hover:text-primary
+            transition
+          "
         >
-          NEW
-        </motion.div>
+          <FiHeart size={18} />
+        </button>
+
+        {/* Quick action */}
+        {!outOfStock && (
+          <button
+            onClick={onAddToCart}
+            className="
+              absolute
+              bottom-3
+              left-3
+              right-3
+              h-11
+              rounded-lg
+              bg-white
+              text-foreground
+              font-semibold
+              text-sm
+              flex
+              items-center
+              justify-center
+              gap-2
+              opacity-0
+              translate-y-2
+              group-hover:opacity-100
+              group-hover:translate-y-0
+              transition-all
+              duration-300
+              shadow-lg
+            "
+          >
+            <FiShoppingBag size={16} />
+            Add to Cart
+          </button>
+        )}
       </div>
 
-      {/* Content */}
-      <div className="p-6 space-y-4">
-        {/* Category & Rating */}
-        <div className="flex justify-between items-start">
-          {product.category && (
-            <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded">
-              {product.category}
+      {/* Information */}
+      <div className="pt-4">
+
+        {/* Brand */}
+        {product.brand && (
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+            {product.brand}
+          </p>
+        )}
+
+        <div className="flex items-start justify-between gap-3">
+          <Link
+            href={`/product/${product.id}`}
+            className="min-w-0"
+          >
+            <h3 className="font-semibold text-sm md:text-base truncate hover:text-primary transition">
+              {product.name}
+            </h3>
+          </Link>
+
+          <span className="text-sm font-bold shrink-0">
+            ${product.price.toFixed(2)}
+          </span>
+        </div>
+
+        {/* Category + Rating */}
+        <div className="flex items-center justify-between mt-2">
+          <span className="text-xs text-muted-foreground">
+            {product.category}
+          </span>
+
+          {product.rating !== undefined && (
+            <span className="text-xs font-medium">
+              ★ {product.rating.toFixed(1)}
+              <span className="text-muted-foreground">
+                {' '}
+                ({product.reviews || 0})
+              </span>
             </span>
           )}
-          {product.rating && (
-            <span className="text-sm font-semibold text-amber-600">
-              ★ {product.rating.toFixed(1)} ({product.reviews || 0})
-            </span>
-          )}
         </div>
 
-        {/* Name & Price */}
-        <div>
-          <h3 className="text-lg font-bold mb-2 line-clamp-2">{product.name}</h3>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-primary">${product.price.toFixed(2)}</span>
-            {product.inStock === false && (
-              <span className="text-xs font-semibold text-destructive">Out of Stock</span>
-            )}
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-2 pt-4">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onAddToCart}
-            className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition font-medium flex items-center justify-center gap-2"
-          >
-            <FiShoppingCart className="w-4 h-4" />
-            Add to Cart
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onAddToWishlist}
-            className="px-4 py-2 border border-border rounded-lg hover:bg-secondary transition flex items-center justify-center"
-          >
-            <FiHeart className="w-4 h-4" />
-          </motion.button>
-        </div>
-
-        {/* View Details Link */}
+        {/* Details */}
         <Link
           href={`/product/${product.id}`}
-          className="block text-center text-sm text-primary hover:text-accent font-medium transition"
+          className="
+            inline-flex
+            items-center
+            gap-1
+            mt-3
+            text-xs
+            font-semibold
+            text-primary
+            opacity-0
+            group-hover:opacity-100
+            transition
+          "
         >
-          View Details
-          <FiArrowRight className="inline ml-1 w-3 h-3" />
+          View details
+          <FiArrowUpRight size={13} />
         </Link>
       </div>
-    </motion.div>
+    </motion.article>
   );
 }

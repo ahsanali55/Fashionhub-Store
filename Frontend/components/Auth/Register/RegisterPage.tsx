@@ -40,6 +40,7 @@ export default function RegisterPage() {
           fullName,
           email,
           password,
+          role,
         })
       );
       setLoading(false);
@@ -49,7 +50,7 @@ export default function RegisterPage() {
 
         if (user.role === "customer") {
           router.push("/customer/dashboard");
-        } else if (role === 'supplier') {
+        } else if (user.role === 'supplier') {
           router.push('/supplier/dashboard');
         }
         
@@ -83,7 +84,7 @@ export default function RegisterPage() {
             {/* Full Name */}
             <div>
               <label className="block text-sm font-medium mb-2">Full Name</label>
-              <div className="flex items-center gap-3 px-4 py-3 bg-secondary rounded-lg border border-border focus-within:ring-2 focus-within:ring-primary">
+              <div className="flex items-center gap-3 px-4 py-3 bg-muted rounded-lg border border-border focus-within:ring-2 focus-within:ring-primary">
                 <FiUser className="text-muted-foreground" />
                 <input
                   type="text"
@@ -99,7 +100,7 @@ export default function RegisterPage() {
             {/* Email */}
             <div>
               <label className="block text-sm font-medium mb-2">Email</label>
-              <div className="flex items-center gap-3 px-4 py-3 bg-secondary rounded-lg border border-border focus-within:ring-2 focus-within:ring-primary">
+              <div className="flex items-center gap-3 px-4 py-3 bg-muted rounded-lg border border-border focus-within:ring-2 focus-within:ring-primary">
                 <FiMail className="text-muted-foreground" />
                 <input
                   type="email"
@@ -115,7 +116,7 @@ export default function RegisterPage() {
             {/* Password */}
             <div>
               <label className="block text-sm font-medium mb-2">Password</label>
-              <div className="flex items-center gap-3 px-4 py-3 bg-secondary rounded-lg border border-border focus-within:ring-2 focus-within:ring-primary">
+              <div className="flex items-center gap-3 px-4 py-3 bg-muted rounded-lg border border-border focus-within:ring-2 focus-within:ring-primary">
                 <FiLock className="text-muted-foreground" />
                 <input
                   type="password"
@@ -131,7 +132,7 @@ export default function RegisterPage() {
             {/* Confirm Password */}
             <div>
               <label className="block text-sm font-medium mb-2">Confirm Password</label>
-              <div className="flex items-center gap-3 px-4 py-3 bg-secondary rounded-lg border border-border focus-within:ring-2 focus-within:ring-primary">
+              <div className="flex items-center gap-3 px-4 py-3 bg-muted rounded-lg border border-border focus-within:ring-2 focus-within:ring-primary">
                 <FiLock className="text-muted-foreground" />
                 <input
                   type="password"
@@ -150,7 +151,7 @@ export default function RegisterPage() {
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value as 'customer' | 'supplier')}
-                className="w-full px-4 py-3 bg-secondary rounded-lg border border-border focus:ring-2 focus:ring-primary focus:outline-none text-sm"
+                className="w-full px-4 py-3 bg-muted rounded-lg border border-border focus:ring-2 focus:ring-primary focus:outline-none text-sm"
               >
                 <option value="customer">Customer (Buyer)</option>
                 <option value="supplier">Supplier (Seller)</option>
