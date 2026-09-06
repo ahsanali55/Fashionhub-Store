@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { refreshAccessToken, registerUser } from "../services/auth.service";
 import User from "../models/user.model";
-import { IUser } from "../interfaces/user.interface";
 import { loginUser } from "../services/auth.service";
 import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/asyncHandler";

@@ -3,6 +3,7 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import authRoutes from "./routes/auth.routes";
+import productRoutes from "./routes/product.routes";
 import { errorHandler } from "./middleware/error.middleware";
 import cookieParser from "cookie-parser";
 const app = express();
@@ -19,17 +20,19 @@ app.use(cookieParser());
 
 
 // Routes
-app.get("/", (req, res) => {
-  res.send("FashionHub Api is running");
-});
-app.use("/api/auth", authRoutes);
-
 app.get("/", (_, res) => {
+  console.log("GET request received at root endpoint");
   res.json({
     success: true,
     message: "FashionHub API Running Successfully",
   });
 });
+
+app.use("/api/auth", authRoutes);
+app.use("/api/products", productRoutes);
+
+
+
 
 // Error Handling Middleware
 app.use(errorHandler);
