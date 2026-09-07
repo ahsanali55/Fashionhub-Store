@@ -17,6 +17,6 @@ router.get("/:id", getProductById);
 
 router.post("/", protect, authorize("supplier"), upload.single("image"), createProduct);
 router.put("/:id", protect, authorize("supplier"), upload.single("image"), updateProduct);
-router.delete("/:id", protect, authorize("supplier"), deleteProduct);
+router.delete("/:id", protect, authorize("supplier", "admin"), deleteProduct);
 
 export default router;
