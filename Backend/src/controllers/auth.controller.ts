@@ -17,25 +17,19 @@ export const register = asyncHandler(
     console.log("Register request ", req.body);
 
     const user = await registerUser(req.body);
-    const accessToken = generateAccessToken(
-      user._id.toString(),
-      user.role
-    );
+    const accessToken = generateAccessToken(user._id.toString(), user.role);
     res.status(201).json(
-      new ApiResponse(
-        "User registered successfully.",
-        {
-          user: {
-            id: user._id,
-            fullName: user.fullName,
-            email: user.email,
-            role: user.role,
-          },
-          accessToken,
-        }
-      )
+      new ApiResponse("User registered successfully.", {
+        user: {
+          id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role,
+        },
+        accessToken,
+      }),
     );
-  }
+  },
 );
 
 // Login controller
@@ -44,7 +38,7 @@ export const login = asyncHandler(
     console.log("Login request ", req.body);
     const user = await loginUser(req.body);
 
-    const accessToken = generateAccessToken(user._id.toString(), user.role); 
+    const accessToken = generateAccessToken(user._id.toString(), user.role);
     const refreshToken = generateRefreshToken(user._id.toString());
 
     // Save refresh token in database
@@ -57,86 +51,72 @@ export const login = asyncHandler(
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax" as const,
     };
-    res.cookie("accessToken", accessToken,
-      {
+    res
+      .cookie("accessToken", accessToken, {
         ...cookieOptions,
-        maxAge: 15 * 60 * 1000,  // 15 minutes 
-      }).cookie("refreshToken", refreshToken,
-        {
-          ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        }).status(200).json(
-          new ApiResponse(
-            "Login successful.",
-            {
-              user: {
-                id: user._id,
-                fullName: user.fullName,
-                email: user.email,
-                role: user.role,
-              },
-            }
-          )
-        );
-  }
+        maxAge: 15 * 60 * 1000, // 15 minutes
+      })
+      .cookie("refreshToken", refreshToken, {
+        ...cookieOptions,
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      })
+      .status(200)
+      .json(
+        new ApiResponse("Login successful.", {
+          user: {
+            id: user._id,
+            fullName: user.fullName,
+            email: user.email,
+            role: user.role,
+          },
+        }),
+      );
+  },
 );
 // Getting the current logged in user
 export const getCurrentUserProfile = asyncHandler(
-  async (
-    req: Request,
-    res: Response
-  ): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     console.log("Getting current user profile request ");
 
-    res.json(
-      {
-        success: true,
-        user: req.user
-      }
-    );
-  }
-)
+    res.json({
+      success: true,
+      user: req.user,
+    });
+  },
+);
 
 // getting the customer dashboard
-export const getCustomerDashboard = asyncHandler(
-  (req, res) => {
-    console.log("Getting customer dashboard request ", req.body);
+export const getCustomerDashboard = asyncHandler((req, res) => {
+  console.log("Getting customer dashboard request ", req.body);
 
-    res.json(
-      {
-        success: true,
-        message: "Welcome Customer!",
-        user: req.user,
-      });
-  }
-);
+  res.json({
+    success: true,
+    message: "Welcome Customer!",
+    user: req.user,
+  });
+});
 
 // getting the supplier dashboard
-export const getSupplierDashboard = asyncHandler(
-  (req, res) => {
-    console.log("Getting supplier dashboard request ", req.body);
+export const getSupplierDashboard = asyncHandler((req, res) => {
+  console.log("Getting supplier dashboard request ", req.body);
 
-    res.json(
-      {
-        success: true,
-        message: "Welcome Supplier!",
-        user: req.user,
-      });
-  }
-);
+  res.json({
+    success: true,
+    message: "Welcome Supplier!",
+    user: req.user,
+  });
+});
 
 // getting the admin dashboard
-export const getAdminDashboard = asyncHandler(
-  (req, res) => {
-    console.log("Getting admin dashboard request ", req.body);
+export const getAdminDashboard = asyncHandler((req, res) => {
+  console.log("Getting admin dashboard request ", req.body);
 
-    res.json(
-      {
-        success: true,
-        message: "Welcome Admin!",
-        user: req.user,
-      });
-  }
-);
+  res.json({
+    success: true,
+    message: "Welcome Admin!",
+    user: req.user,
+  });
+});
 
 // refresh access token controller
 export const refreshToken = asyncHandler(
@@ -147,13 +127,17 @@ export const refreshToken = asyncHandler(
     const user = await refreshAccessToken(refreshTokenCookie);
     const accessToken = generateAccessToken(user._id.toString(), user.role);
 
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: false,
-      sameSite: "lax",
-      maxAge: 15 * 60 * 1000,
-    }).status(200).json(new ApiResponse("Access token refreshed successfully.", {}));
-  });
+    res
+      .cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax",
+        maxAge: 15 * 60 * 1000,
+      })
+      .status(200)
+      .json(new ApiResponse("Access token refreshed successfully.", {}));
+  },
+);
 
 // logout controller
 export const logout = asyncHandler(
@@ -168,12 +152,15 @@ export const logout = asyncHandler(
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax" as const,
     };
-    res.clearCookie("accessToken", cookieOptions).clearCookie("refreshToken", cookieOptions).status(200).json(new ApiResponse("Logout successful.", {})
-    );
-  }
+    res
+      .clearCookie("accessToken", cookieOptions)
+      .clearCookie("refreshToken", cookieOptions)
+      .status(200)
+      .json(new ApiResponse("Logout successful.", {}));
+  },
 );
 
-// get current logged user 
+// get current logged user
 export const getCurrentUser = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     if (!req.user) {
@@ -190,10 +177,9 @@ export const getCurrentUser = asyncHandler(
           createdAt: req.user.createdAt,
           updatedAt: req.user.updatedAt,
         },
-      }
-      )
+      }),
     );
-  }
+  },
 );
 
 // Forgot Password controller
@@ -202,21 +188,16 @@ export const forgotPasswordController = asyncHandler(
     console.log("Forgot password request ", req.body);
     const { email } = req.body;
 
-    const { resetToken } =
-      await forgotPassword(email);
+    const { resetToken } = await forgotPassword(email);
 
-    const resetUrl =
-      `http://localhost:3000/reset-password/${resetToken}`;
+    const resetUrl = `http://localhost:3000/reset-password/${resetToken}`;
 
     res.status(200).json(
-      new ApiResponse(
-        "Password reset link generated.",
-        {
-          resetUrl,
-        }
-      )
+      new ApiResponse("Password reset link generated.", {
+        resetUrl,
+      }),
     );
-  }
+  },
 );
 
 // Reset Passward
@@ -229,6 +210,7 @@ export const resetPasswordController = asyncHandler(
       throw new Error("Invalid reset token.");
     }
     await resetPassword(token as string, password);
-    res.status(200).json(new ApiResponse("Password reset successfully.", {})
-    );
-  });
+    res.status(200).json(new ApiResponse("Password reset successfully.", {}));
+  },
+);
+

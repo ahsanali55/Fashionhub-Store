@@ -64,6 +64,21 @@ export const getProductById = asyncHandler(
 export const createProduct = asyncHandler(
   async (req: Request, res: Response) => {
     console.log("Create Product request ", req);
+    
+    if (req.user?.role === "supplier" && req.user?.status === "rejected") {
+      throw new ApiError(
+        403,
+        "Your supplier account has been rejected. You cannot create products.",
+      );
+    }
+
+    if (req.user?.role === "supplier" && req.user?.status !== "approved") {
+      throw new ApiError(
+        403,
+        "Your supplier account is pending admin approval. You cannot create products yet.",
+      );
+    } 
+
     const { name, description, price, category, stock } = req.body;
 
     if (!req.file) {
@@ -96,7 +111,7 @@ export const updateProduct = asyncHandler(
 
     if (!product) {
       throw new ApiError(404, "Product not found");
-    } 
+    }
 
     // Ensure ONLY the specific supplier who owns this product can update it
     if (product.supplier.toString() !== req.user?._id?.toString()) {
@@ -104,16 +119,16 @@ export const updateProduct = asyncHandler(
     }
 
     let imageUrl = product.image;
-    
+
     if (req.file) {
       // 1. Upload new image to Cloudinary
       const cloudinaryResponse = await uploadToCloudinary(req.file.buffer);
-      
+
       // 2. Delete the old image from Cloudinary if it exists
       if (product.image) {
         await deleteFromCloudinary(product.image);
       }
-      
+
       // 3. Assign new image URL
       imageUrl = cloudinaryResponse.secure_url;
     }
@@ -125,15 +140,13 @@ export const updateProduct = asyncHandler(
         ...req.body,
         image: imageUrl,
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     return res
       .status(200)
-      .json(
-        new ApiResponse("Product updated successfully", updatedProduct)
-      );
-  }
+      .json(new ApiResponse("Product updated successfully", updatedProduct));
+  },
 );
 
 export const deleteProduct = asyncHandler(
@@ -154,8 +167,8 @@ export const deleteProduct = asyncHandler(
     }
     // Delete the product image from Cloudinary if it exists
     if (product.image) {
-        await deleteFromCloudinary(product.image);
-      }
+      await deleteFromCloudinary(product.image);
+    }
     await product.deleteOne();
 
     return res
