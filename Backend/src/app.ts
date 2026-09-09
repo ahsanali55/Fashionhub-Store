@@ -2,11 +2,12 @@ import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
 import cors from "cors";
+import { errorHandler } from "./middleware/error.middleware";
 import authRoutes from "./routes/auth.routes";
 import productRoutes from "./routes/product.routes";
 import adminRoutes from "./routes/admin.routes";
 import orderRoutes from "./routes/order.routes";
-import { errorHandler } from "./middleware/error.middleware";
+import reviewRoutes from "./routes/review.routes";
 import cookieParser from "cookie-parser";
 const app = express();
 
@@ -34,6 +35,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/products", reviewRoutes);
 
 
 // Error Handling Middleware
