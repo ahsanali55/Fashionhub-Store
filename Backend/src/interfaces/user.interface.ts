@@ -7,6 +7,7 @@ export interface IUser extends Document {
   email: string;
   password: string;
   role: UserRole;
+  status: "pending" | "approved" | "rejected";
   refreshToken?: string | null;
   passwordResetToken?: string | null;
   passwordResetExpires?: Date | null;

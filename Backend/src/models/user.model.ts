@@ -37,6 +37,13 @@ const userSchema = new Schema<IUser>(
       enum: ["customer", "supplier", "admin"],
       default: "customer",
     },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: function (this: any) {
+        return this.role === "supplier" ? "pending" : "approved";
+      },
+    },
     refreshToken: {
       type: String,
       default: null,
@@ -53,7 +60,7 @@ const userSchema = new Schema<IUser>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 // Pre-save hook to hash the password before saving the user document
 userSchema.pre("save", async function () {
@@ -64,7 +71,7 @@ userSchema.pre("save", async function () {
 
 // Password comparison method to compare the provided password with the hashed password
 userSchema.methods.comparePassword = async function (
-  candidatePassword: string
+  candidatePassword: string,
 ) {
   return bcrypt.compare(candidatePassword, this.password);
 };
