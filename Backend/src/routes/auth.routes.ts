@@ -11,13 +11,13 @@ const router = Router();
 
 router.post("/register", validate(registerSchema), register);
 router.post("/login", validate(loginSchema), login);
+router.get("/me", protect, getCurrentUser);
 router.get("/profile", protect, getCurrentUserProfile);
 router.get("/customer-dashboard", protect, authorize("customer"), getCustomerDashboard);
 router.get("/supplier-dashboard", protect, authorize("supplier"), getSupplierDashboard);
 router.get("/admin-dashboard", protect, authorize("admin"), getAdminDashboard);
 router.post("/refresh-token", refreshToken);
 router.post("/logout", protect, logout);
-router.get("/me", protect, getCurrentUser);
 router.post("/forgot-password", forgotPasswordController);
 router.post( "/reset-password/:token", resetPasswordController );
 

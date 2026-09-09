@@ -190,7 +190,7 @@ export const forgotPasswordController = asyncHandler(
 
     const { resetToken } = await forgotPassword(email);
 
-    const resetUrl = `http://localhost:3000/reset-password/${resetToken}`;
+    const resetUrl = `http://localhost:5000/api/auth/reset-password/${resetToken}`;
 
     res.status(200).json(
       new ApiResponse("Password reset link generated.", {
