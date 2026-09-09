@@ -4,7 +4,8 @@ import { ApiError } from "../utils/ApiError";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { generatePasswordResetToken } from "../utils/generatePasswordResetToken";
-
+import cloudinary from "../config/cloudinary";
+import fs from "fs";
 interface RegisterUserData {
   fullName: string;
   email: string;
@@ -117,4 +118,34 @@ export const resetPassword = async (token: string, password: string) => {
   user.refreshToken = null;
   await user.save();
   return user;
+};
+
+// Update user avatar function to update the avatar of the user at cloudinary and save the new avatar URL to the user document
+export const uploadOnCloudinary = async (localFilePath: string) => {
+  try {
+    if (!localFilePath) return null;
+    const response = await cloudinary.uploader.upload(localFilePath, {
+      resource_type: "auto",
+      folder: "fashionhub/avatars",
+    });
+    // Remove the locally saved temporary file
+    fs.unlinkSync(localFilePath);
+    return response;
+  } catch (error) {
+    fs.unlinkSync(localFilePath); // Remove temp file on failure
+    return null;
+  }
+};
+
+export const deleteFromCloudinary = async (imageUrl: string) => {
+  try {
+    if (!imageUrl) return;
+    // Extract public ID from Cloudinary URL
+    const parts = imageUrl.split("/");
+    const filename = parts[parts.length - 1];
+    const publicId = `fashionhub/avatars/${filename.split(".")[0]}`;
+    await cloudinary.uploader.destroy(publicId);
+  } catch (error) {
+    console.error("Error deleting old image from Cloudinary:", error);
+  }
 };
