@@ -2,13 +2,14 @@ import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import { errorHandler } from "./middleware/error.middleware";
 import authRoutes from "./routes/auth.routes";
 import productRoutes from "./routes/product.routes";
 import adminRoutes from "./routes/admin.routes";
 import orderRoutes from "./routes/order.routes";
 import reviewRoutes from "./routes/review.routes";
-import cookieParser from "cookie-parser";
+import analyticsRoutes from "./routes/analytics.routes";
 const app = express();
 
 app.use(
@@ -36,7 +37,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/products", reviewRoutes);
-
+app.use("/api/analytics", analyticsRoutes);
 
 // Error Handling Middleware
 app.use(errorHandler);

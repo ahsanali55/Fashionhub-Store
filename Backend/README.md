@@ -279,3 +279,48 @@ Password Reset Successfully
 ✅ Reset Password
 ✅ Current User (/me)
 ✅ Logout
+
+<!-- Process 0 and 1 Completed so far-->
+Authentication & Users
+
+Register / Login: Handled via your auth routes to generate tokens for admin, supplier, and customer roles.
+
+Verification: Test login in Postman to ensure accessToken payloads return the correct role and user _id.
+
+Product Management
+
+GET /api/products: Fetches all products (Public).
+
+POST /api/products: Allows suppliers to create products with categories, pricing, stock, and images.
+
+PATCH /api/products/:id & DELETE /api/products/:id: Manages product updates and removals.
+
+Order Management System
+
+POST /api/orders: Customer places a multi-item order.
+
+GET /api/orders/my: Customer views their personal order history.
+
+GET /api/orders/supplier/orders: Logged-in supplier views only orders containing their specific products with item-level filtering.
+
+GET /api/orders/admin/orders: Admin views platform-wide orders populated with customer details.
+
+GET /api/orders/:id: Fetches single order details with role-based visibility control.
+
+PATCH /api/orders/:id/status: Suppliers update item-level fulfillment statuses (pending, processing, shipped, delivered).
+
+Ratings & Reviews
+
+GET /api/products (or GET /api/products/:id/reviews): Fetches all reviews or reviews specific to a product.
+
+POST /api/products/:id/reviews: Customers submit ratings and comments, automatically triggering the helper to update the product's average rating and review count.
+
+Reports & Analytics
+
+GET /api/analytics/supplier: Generates performance tracking metrics for the logged-in supplier (total products, stock, items sold, revenue, and average rating).
+
+GET /api/analytics/admin: Computes platform-wide metrics filtering by approved suppliers, total orders, true calculated revenue, and orders-over-time trends.
+
+GET /api/analytics/admin/top-products: Aggregates top-selling products by quantity and revenue.
+
+<!-- Process 2 is in progress -->
