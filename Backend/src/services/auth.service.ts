@@ -4,8 +4,8 @@ import { ApiError } from "../utils/ApiError";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { generatePasswordResetToken } from "../utils/generatePasswordResetToken";
-
-
+import cloudinary from "../config/cloudinary";
+import fs from "fs";
 interface RegisterUserData {
   fullName: string;
   email: string;
@@ -13,9 +13,7 @@ interface RegisterUserData {
   role?: "customer" | "supplier";
 }
 
-export const registerUser = async (
-  data: RegisterUserData
-): Promise<IUser> => {
+export const registerUser = async (data: RegisterUserData): Promise<IUser> => {
   const { fullName, email, password, role = "customer" } = data;
 
   const existingUser = await User.findOne({ email });
@@ -39,9 +37,7 @@ interface LoginUserData {
   password: string;
 }
 
-export const loginUser = async (
-  data: LoginUserData
-): Promise<IUser> => {
+export const loginUser = async (data: LoginUserData): Promise<IUser> => {
   const { email, password } = data;
 
   const user = await User.findOne({ email }).select("+password");
@@ -59,18 +55,22 @@ export const loginUser = async (
   return user;
 };
 
-// create a function to refresh access token using refresh token 
-interface RefreshTokenPayload { id: string; }
+// create a function to refresh access token using refresh token
+interface RefreshTokenPayload {
+  id: string;
+}
 
 export const refreshAccessToken = async (refreshToken: string) => {
   if (!refreshToken) {
     throw new ApiError(401, "Refresh token is missing.");
   }
-  const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET!) as RefreshTokenPayload;
+  const decoded = jwt.verify(
+    refreshToken,
+    process.env.JWT_REFRESH_SECRET!,
+  ) as RefreshTokenPayload;
   const user = await User.findById(decoded.id);
   if (!user) {
     throw new ApiError(401, "User not found.");
-
   }
   if (user.refreshToken !== refreshToken) {
     throw new ApiError(401, "Invalid refresh token.");
@@ -80,12 +80,11 @@ export const refreshAccessToken = async (refreshToken: string) => {
 
 //  create a function to logout user by clearing refresh token from database
 export const logoutUser = async (userId: string): Promise<void> => {
-  await User.findByIdAndUpdate(userId,
-    {
-      $unset: {
-        refreshToken: 1,
-      },
-    });
+  await User.findByIdAndUpdate(userId, {
+    $unset: {
+      refreshToken: 1,
+    },
+  });
 };
 
 // create a function to generate password reset token and save it to the user document
@@ -94,29 +93,59 @@ export const forgotPassword = async (email: string) => {
   if (!user) {
     throw new ApiError(404, "User not found.");
   }
-  const { resetToken, hashedToken, } = generatePasswordResetToken();
+  const { resetToken, hashedToken } = generatePasswordResetToken();
   user.passwordResetToken = hashedToken;
-  user.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes 
+  user.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
   await user.save();
-  return { user, resetToken, };
+  return { user, resetToken };
 };
 
 // reset password function to reset the password using the reset token
 export const resetPassword = async (token: string, password: string) => {
-  const hashedToken = crypto.createHash("sha256").update(token).digest("hex"); const user = await User.findOne(
-    {
-      passwordResetToken: hashedToken,
-      passwordResetExpires: {
-        $gt: new Date(),
-      },
-    });
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+  const user = await User.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetExpires: {
+      $gt: new Date(),
+    },
+  });
   if (!user) {
     throw new ApiError(400, "Invalid or expired reset token.");
   }
   user.password = password;
-  user.passwordResetToken = null; 
-  user.passwordResetExpires = null; // Force logout from all devices 
+  user.passwordResetToken = null;
+  user.passwordResetExpires = null; // Force logout from all devices
   user.refreshToken = null;
   await user.save();
   return user;
+};
+
+// Update user avatar function to update the avatar of the user at cloudinary and save the new avatar URL to the user document
+export const uploadOnCloudinary = async (localFilePath: string) => {
+  try {
+    if (!localFilePath) return null;
+    const response = await cloudinary.uploader.upload(localFilePath, {
+      resource_type: "auto",
+      folder: "fashionhub/avatars",
+    });
+    // Remove the locally saved temporary file
+    fs.unlinkSync(localFilePath);
+    return response;
+  } catch (error) {
+    fs.unlinkSync(localFilePath); // Remove temp file on failure
+    return null;
+  }
+};
+
+export const deleteFromCloudinary = async (imageUrl: string) => {
+  try {
+    if (!imageUrl) return;
+    // Extract public ID from Cloudinary URL
+    const parts = imageUrl.split("/");
+    const filename = parts[parts.length - 1];
+    const publicId = `fashionhub/avatars/${filename.split(".")[0]}`;
+    await cloudinary.uploader.destroy(publicId);
+  } catch (error) {
+    console.error("Error deleting old image from Cloudinary:", error);
+  }
 };

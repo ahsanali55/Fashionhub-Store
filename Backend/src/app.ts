@@ -10,6 +10,7 @@ import adminRoutes from "./routes/admin.routes";
 import orderRoutes from "./routes/order.routes";
 import reviewRoutes from "./routes/review.routes";
 import analyticsRoutes from "./routes/analytics.routes";
+import notificationRoutes from "./routes/notification.routes";
 const app = express();
 
 app.use(
@@ -38,6 +39,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/products", reviewRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Error Handling Middleware
 app.use(errorHandler);

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { refreshAccessToken, registerUser } from "../services/auth.service";
+import { deleteFromCloudinary, refreshAccessToken, registerUser, uploadOnCloudinary } from "../services/auth.service";
 import User from "../models/user.model";
 import { loginUser } from "../services/auth.service";
 import { ApiResponse } from "../utils/ApiResponse";
@@ -190,7 +190,7 @@ export const forgotPasswordController = asyncHandler(
 
     const { resetToken } = await forgotPassword(email);
 
-    const resetUrl = `http://localhost:3000/reset-password/${resetToken}`;
+    const resetUrl = `http://localhost:5000/api/auth/reset-password/${resetToken}`;
 
     res.status(200).json(
       new ApiResponse("Password reset link generated.", {
@@ -214,3 +214,37 @@ export const resetPasswordController = asyncHandler(
   },
 );
 
+// Update Avatar controller
+export const updateAvatar = asyncHandler(async (req: Request, res: Response) => {
+  const localFilePath = req.file?.path;
+  console.log("local File Path ", localFilePath )
+  if (!localFilePath) {
+    throw new ApiError(400, "Avatar image file is missing");
+  }
+
+  // Upload new image to Cloudinary
+  const cloudinaryResponse = await uploadOnCloudinary(localFilePath);
+  if (!cloudinaryResponse?.secure_url) {
+    throw new ApiError(500, "Failed to upload image to Cloudinary");
+  }
+
+  const userId = req.user?._id;
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  // If user already has an old avatar, delete it from Cloudinary
+  if (user.avatar) {
+    await deleteFromCloudinary(user.avatar);
+  }
+
+  // Save new avatar URL to user document
+  user.avatar = cloudinaryResponse.secure_url;
+  await user.save();
+
+  return res.status(200).json(
+    new ApiResponse("Avatar updated successfully.", { avatar: user.avatar })
+  );
+});
