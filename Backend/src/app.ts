@@ -13,6 +13,7 @@ import analyticsRoutes from "./routes/analytics.routes";
 import notificationRoutes from "./routes/notification.routes";
 import cartRoutes from "./routes/cart.routes";
 import wishlistRoutes from "./routes/wishlist.routes";
+import categoryRoutes from "./routes/category.routes";
 const app = express();
 
 app.use(
@@ -44,6 +45,7 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/categories", categoryRoutes);
 
 // Error Handling Middleware
 app.use(errorHandler);
