@@ -6,6 +6,7 @@ import { authorize } from "../middleware/role.middleware";
 import { refreshToken } from "../controllers/auth.controller";
 import { resetPasswordController, } from "../controllers/auth.controller";
 import { updateAvatar } from "../controllers/auth.controller";
+import { updateProfile } from "../controllers/auth.controller";
 import { protect } from "../middleware/auth.middleware";
 import { upload } from "../middleware/multer.middleware";
 
@@ -23,5 +24,6 @@ router.post("/logout", protect, logout);
 router.post("/forgot-password", forgotPasswordController);
 router.patch( "/reset-password/:token", resetPasswordController );
 router.patch("/avatar", protect, upload.single("avatar"), updateAvatar);
+router.patch("/profile", protect, updateProfile);
 
 export default router;
