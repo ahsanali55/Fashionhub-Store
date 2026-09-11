@@ -248,3 +248,40 @@ export const updateAvatar = asyncHandler(async (req: Request, res: Response) => 
     new ApiResponse("Avatar updated successfully.", { avatar: user.avatar })
   );
 });
+
+// Update Profile controller
+export const updateProfile = asyncHandler(async (req: Request, res: Response) => {
+  const { fullName, email } = req.body;
+
+  console.log("Update user profile request ", req.body);
+
+  // Build a dynamic update object so only provided fields are changed
+  const updateData: { fullName?: string; email?: string } = {};
+
+  if (fullName !== undefined) {
+    updateData.fullName = fullName;
+  }
+
+  if (email !== undefined) {
+    // Check if the new email is already taken by another user
+    const existingUser = await User.findOne({ email, _id: { $ne: req.user?._id } });
+    if (existingUser) {
+      throw new ApiError(400, "Email is already in use by another account");
+    }
+    updateData.email = email;
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user?._id,
+    { $set: updateData },
+    { returnDocument: "after", runValidators: true }
+  ).select("-password");
+
+  if (!updatedUser) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return res.status(200).json(
+    new ApiResponse("Profile updated successfully", updatedUser)
+  );
+});

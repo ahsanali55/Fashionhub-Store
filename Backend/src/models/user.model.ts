@@ -44,6 +44,7 @@ const userSchema = new Schema<IUser>(
         return this.role === "supplier" ? "pending" : "approved";
       },
     },
+    isActive: { type: Boolean, default: true },
     refreshToken: {
       type: String,
       default: null,

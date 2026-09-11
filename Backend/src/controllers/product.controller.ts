@@ -5,6 +5,7 @@ import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
 import cloudinary from "../config/cloudinary";
 import streamifier from "streamifier";
+import { Category } from "../models/category.model";
 
 // Helper to upload buffer to Cloudinary
 const uploadToCloudinary = (fileBuffer: Buffer): Promise<any> => {
@@ -80,6 +81,15 @@ export const createProduct = asyncHandler(
     } 
 
     const { name, description, price, category, stock } = req.body;
+
+    // 🔍 Validate that the category exists in the Admin's category list
+    const validCategory = await Category.findOne({ name: category });
+    if (!validCategory) {
+      throw new ApiError(
+        400, 
+        `Invalid category "${category}". Please choose a category provided by the admin.`
+      );
+    }
 
     if (!req.file) {
       throw new ApiError(400, "Product image is required");

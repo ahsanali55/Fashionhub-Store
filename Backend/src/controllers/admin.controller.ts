@@ -67,3 +67,34 @@ export const rejectSupplier = asyncHandler(
       .json(new ApiResponse("Supplier rejected successfully", supplier));
   },
 );
+
+// Get all users (Admin only)
+export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
+  const users = await User.find({}).select("-password").sort({ createdAt: -1 });
+  return res.status(200).json(new ApiResponse("All users fetched successfully", users));
+});
+
+// Suspend or activate a user account
+export const suspendOrActivateUser = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { isActive } = req.body; // boolean (true/false)
+  console.log("Suspend or activate a user account request body:", req.body);
+
+  if (typeof isActive !== "boolean") {
+    throw new ApiError(400, "isActive status must be a boolean value");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    id,
+    { isActive },
+    { returnDocument: "after" }
+  ).select("-password");
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return res.status(200).json(
+    new ApiResponse(`User account has been ${isActive ? "activated" : "suspended"} successfully`, user)
+  );
+});

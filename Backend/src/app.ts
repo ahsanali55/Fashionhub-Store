@@ -11,6 +11,9 @@ import orderRoutes from "./routes/order.routes";
 import reviewRoutes from "./routes/review.routes";
 import analyticsRoutes from "./routes/analytics.routes";
 import notificationRoutes from "./routes/notification.routes";
+import cartRoutes from "./routes/cart.routes";
+import wishlistRoutes from "./routes/wishlist.routes";
+import categoryRoutes from "./routes/category.routes";
 const app = express();
 
 app.use(
@@ -34,12 +37,16 @@ app.get("/", (_, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/users", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/products", reviewRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/categories", categoryRoutes);
 
 // Error Handling Middleware
 app.use(errorHandler);

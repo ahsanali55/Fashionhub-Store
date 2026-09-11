@@ -8,6 +8,7 @@ export interface IUser extends Document {
   password: string;
   role: UserRole;
   status: "pending" | "approved" | "rejected";
+  isActive: boolean;
   refreshToken?: string | null;
   passwordResetToken?: string | null;
   passwordResetExpires?: Date | null;
