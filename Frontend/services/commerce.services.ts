@@ -74,6 +74,7 @@ export interface NotificationRecord {
   orderId?: string;
   productId?: string;
   status?: OrderStatus;
+  userId?: string | { fullName: string; role: string };
 }
 
 export const getCart = async (): Promise<Cart> =>

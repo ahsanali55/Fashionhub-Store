@@ -12,6 +12,7 @@ export interface BackendProduct {
   rating?: number;
   numReviews?: number;
   createdAt?: string;
+  isVisible?: boolean;
   supplier:
     | string
     | {
@@ -118,8 +119,16 @@ export const deleteProduct = async (productId: string): Promise<void> => {
   await api.delete(`/products/${productId}`);
 };
 
+export const setProductVisibility = async (
+  productId: string,
+  isVisible: boolean,
+): Promise<BackendProduct> =>
+  (await api.patch<ApiResponse<BackendProduct>>(`/products/${productId}/visibility`, {
+    isVisible,
+  })).data.data;
+
 export const getAllProductsForManagement = async (): Promise<BackendProduct[]> =>
-  (await api.get<ApiResponse<BackendProduct[]>>('/products')).data.data;
+  (await api.get<ApiResponse<BackendProduct[]>>('/products/admin/all')).data.data;
 
 export const getUsers = async (): Promise<AdminUser[]> =>
   (await api.get<ApiResponse<AdminUser[]>>('/admin/users')).data.data;

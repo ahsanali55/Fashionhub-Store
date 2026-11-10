@@ -73,7 +73,7 @@ export default function CustomerDashboardPage() {
   return (
     <main className="min-h-screen bg-muted/30 py-8 sm:py-10">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <BackButton fallbackHref="/shop" />
+        <BackButton fallbackHref="/shop" alwaysNavigateToFallback />
         <header className="mb-8 flex flex-col gap-5 border-b border-border pb-7 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">
             {auth.user.avatar ? (

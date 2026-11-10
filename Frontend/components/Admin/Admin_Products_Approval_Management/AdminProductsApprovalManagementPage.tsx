@@ -7,8 +7,13 @@ import { useRouter } from 'next/navigation';
 import { FiSearch, FiEye, FiTrash2 } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
 import { BackButton } from '@/components/Reusable_Components/BackButton';
-import { deleteProduct, getAllProductsForManagement, type BackendProduct } from '@/services/management.services';
-import { formatPrice } from '@/lib/utils';
+import {
+  deleteProduct,
+  getAllProductsForManagement,
+  setProductVisibility,
+  type BackendProduct,
+} from '@/services/management.services';
+import { formatPrice, getErrorMessage } from '@/lib/utils';
 
 interface Product {
   id: string;
@@ -16,6 +21,7 @@ interface Product {
   supplier: string;
   price: number;
   category: string;
+  isVisible: boolean;
 }
 
 const containerVariants = {
@@ -37,6 +43,7 @@ export default function AdminProductsApprovalManagementPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [requestError, setRequestError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [updatingVisibilityId, setUpdatingVisibilityId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!auth.isAuthenticated || auth.user?.role !== 'admin') {
@@ -54,10 +61,11 @@ export default function AdminProductsApprovalManagementPage() {
               : product.supplier?.name ?? product.supplier?.fullName ?? product.supplier?.email ?? 'Supplier',
             price: product.price,
             category: product.category,
+            isVisible: product.isVisible ?? true,
           })));
         })
         .catch((error: unknown) => {
-          if (active) setRequestError(error instanceof Error ? error.message : 'Unable to load products.');
+          if (active) setRequestError(getErrorMessage(error, 'Unable to load products.'));
         });
       return () => { active = false; };
     }
@@ -80,9 +88,26 @@ export default function AdminProductsApprovalManagementPage() {
       setProducts((current) => current.filter((product) => product.id !== id));
       setDeletingId(null);
     } catch (error) {
-      setRequestError(error instanceof Error ? error.message : 'Unable to delete product.');
+      setRequestError(getErrorMessage(error, 'Unable to delete product.'));
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleVisibilityChange = async (product: Product) => {
+    setUpdatingVisibilityId(product.id);
+    setRequestError('');
+    try {
+      const updatedProduct = await setProductVisibility(product.id, !product.isVisible);
+      setProducts((current) => current.map((item) =>
+        item.id === product.id
+          ? { ...item, isVisible: updatedProduct.isVisible ?? !product.isVisible }
+          : item,
+      ));
+    } catch (error) {
+      setRequestError(getErrorMessage(error, 'Unable to update product visibility.'));
+    } finally {
+      setUpdatingVisibilityId(null);
     }
   };
 
@@ -125,7 +150,7 @@ export default function AdminProductsApprovalManagementPage() {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="bg-card rounded-lg shadow-sm overflow-hidden"
+          className="overflow-hidden rounded-lg border border-border bg-card shadow-sm"
         >
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -151,20 +176,50 @@ export default function AdminProductsApprovalManagementPage() {
                     <td className="px-6 py-4 font-semibold">{formatPrice(product.price)}</td>
                     <td className="px-6 py-4 text-sm">{product.category}</td>
                     <td className="px-6 py-4 text-sm">
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                        Listed
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        product.isVisible
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-muted text-muted-foreground'
+                      }`}>
+                        {product.isVisible ? 'Listed' : 'Hidden'}
                       </span>
                     </td>
                     <td className="px-6 py-4 flex gap-2">
-                      <button onClick={() => router.push(`/product/${product.id}`)} className="text-primary hover:text-accent transition p-2" aria-label={`View ${product.name}`}>
-                        <FiEye className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => setDeletingId(product.id)} className="text-destructive hover:text-destructive/80 transition" aria-label={`Delete ${product.name}`}>
+                      <motion.button
+                        type="button"
+                        onClick={() => void handleVisibilityChange(product)}
+                        disabled={updatingVisibilityId === product.id}
+                        whileHover={{ scale: 1.12 }}
+                        whileTap={{ scale: 0.92 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                        className="group rounded p-2 text-primary transition-colors hover:bg-primary/10 hover:text-primary disabled:cursor-wait disabled:opacity-50"
+                        aria-label={`${product.isVisible ? 'Hide' : 'Show'} ${product.name} in marketplace`}
+                        title={`${product.isVisible ? 'Hide' : 'Show'} in marketplace`}
+                      >
+                        <FiEye className={`h-4 w-4 transition-transform duration-200 group-hover:scale-125 ${product.isVisible ? '' : 'opacity-50'}`} />
+                      </motion.button>
+                      <motion.button
+                        type="button"
+                        onClick={() => setDeletingId(product.id)}
+                        whileHover={{ scale: 1.08 }}
+                        whileTap={{ scale: 0.94 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                        className="rounded p-2 text-destructive transition-colors hover:bg-destructive/10"
+                        aria-label={`Delete ${product.name}`}
+                        title="Delete product"
+                      >
                         <FiTrash2 className="w-4 h-4" />
-                      </button>
+                      </motion.button>
                     </td>
                   </motion.tr>
                 ))}
+                {filteredProducts.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-10 text-center text-sm text-muted-foreground">
+                      {products.length ? 'No products match your search.' : 'No products have been listed yet.'}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

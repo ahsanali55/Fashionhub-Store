@@ -262,6 +262,11 @@ export function WorkspaceShell({ role, children }: WorkspaceShellProps) {
                             />
                             <span>
                               <span className="block text-sm">{notification.message}</span>
+                              {role === 'admin' && typeof notification.userId === 'object' && (
+                                <span className="mt-1 block text-xs text-muted-foreground">
+                                  For {notification.userId.fullName} · {notification.userId.role}
+                                </span>
+                              )}
                               <span className="mt-1 block text-xs text-muted-foreground">
                                 {new Date(notification.createdAt).toLocaleString()}
                               </span>

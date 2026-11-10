@@ -49,6 +49,7 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
 
   const products = await Product.find({
     _id: { $in: Array.from(quantities.keys()) },
+    isVisible: { $ne: false },
   });
   if (products.length !== quantities.size) {
     throw new ApiError(400, "One or more products are no longer available");
@@ -71,7 +72,7 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
   try {
     for (const item of orderItems) {
       const reservation = await Product.findOneAndUpdate(
-        { _id: item.productId, stock: { $gte: item.quantity } },
+        { _id: item.productId, isVisible: { $ne: false }, stock: { $gte: item.quantity } },
         { $inc: { stock: -item.quantity } },
         { new: true },
       );

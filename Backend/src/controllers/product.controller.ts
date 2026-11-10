@@ -6,6 +6,7 @@ import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
 import { Category } from "../models/category.model";
 import { uploadImage } from "../utils/uploadImage";
+import { createNotification } from "../utils/notificationHelper";
 
 const parseProductFields = (body: Request["body"]) => {
   const name = typeof body.name === "string" ? body.name.trim() : "";
@@ -44,21 +45,36 @@ const deleteFromCloudinary = async (imageUrl: string) => {
 
 export const getAllProducts = asyncHandler(
   async (req: Request, res: Response) => {
-    console.log("Get All Product request ", req.body);
-    const products = await Product.find().populate("supplier", "name email");
+    const products = await Product.find({ isVisible: { $ne: false } }).populate("supplier", "fullName email");
     return res
       .status(200)
       .json(new ApiResponse("Products fetched successfully", products));
   },
 );
 
+export const getAllProductsForAdmin = asyncHandler(
+  async (_req: Request, res: Response) => {
+    const products = await Product.find().populate("supplier", "fullName email");
+    return res.status(200).json(new ApiResponse("Products fetched successfully", products));
+  },
+);
+
+export const getSupplierProducts = asyncHandler(
+  async (req: Request, res: Response) => {
+    const products = await Product.find({ supplier: req.user?._id })
+      .populate("supplier", "fullName email");
+    return res.status(200).json(new ApiResponse("Supplier products fetched successfully", products));
+  },
+);
+
 export const getProductById = asyncHandler(
   async (req: Request, res: Response) => {
-    console.log("Get Product by ID request ", req.body);
-
-    const product = await Product.findById(req.params.id).populate(
+    const product = await Product.findOne({
+      _id: req.params.id,
+      isVisible: { $ne: false },
+    }).populate(
       "supplier",
-      "name email",
+      "fullName email",
     );
     if (!product) {
       throw new ApiError(404, "Product not found");
@@ -66,6 +82,35 @@ export const getProductById = asyncHandler(
     return res
       .status(200)
       .json(new ApiResponse("Product fetched successfully", product));
+  },
+);
+
+export const setProductVisibility = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { isVisible } = req.body as { isVisible: boolean };
+    if (typeof isVisible !== "boolean") {
+      throw new ApiError(400, "isVisible must be a boolean value");
+    }
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      { $set: { isVisible } },
+      { new: true, runValidators: true },
+    );
+    if (!product) throw new ApiError(404, "Product not found");
+
+    const message = isVisible
+      ? `${product.name} is visible in the marketplace again.`
+      : `${product.name} was hidden from the marketplace by an administrator.`;
+    await createNotification(
+      product.supplier.toString(),
+      message,
+      isVisible ? "PRODUCT_RESTORED" : "PRODUCT_HIDDEN",
+      { productId: product._id.toString() },
+    );
+
+    return res.status(200).json(
+      new ApiResponse(`Product ${isVisible ? "shown" : "hidden"} successfully`, product),
+    );
   },
 );
 

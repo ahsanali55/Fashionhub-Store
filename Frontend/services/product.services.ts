@@ -13,6 +13,7 @@ interface ApiProduct {
   rating?: number;
   numReviews?: number;
   createdAt: string;
+  isVisible?: boolean;
   supplier:
     | string
     | {
@@ -24,8 +25,16 @@ interface ApiProduct {
 
 export const getProducts = async (): Promise<Product[]> => {
   const response = await api.get<ApiResponse<ApiProduct[]>>('/products');
+  return mapApiProducts(response.data.data);
+};
 
-  return response.data.data.map((product) => ({
+export const getSupplierProducts = async (): Promise<Product[]> => {
+  const response = await api.get<ApiResponse<ApiProduct[]>>('/products/mine');
+  return mapApiProducts(response.data.data);
+};
+
+const mapApiProducts = (products: ApiProduct[]): Product[] =>
+  products.map((product) => ({
     id: product._id,
     name: product.name,
     category: product.category,
@@ -37,6 +46,7 @@ export const getProducts = async (): Promise<Product[]> => {
     rating: product.rating ?? 0,
     reviews: product.numReviews ?? 0,
     createdAt: product.createdAt,
+    isVisible: product.isVisible ?? true,
     supplier:
       typeof product.supplier === 'string'
         ? product.supplier
@@ -48,4 +58,3 @@ export const getProducts = async (): Promise<Product[]> => {
     keywords: [],
     brand: '',
   }));
-};

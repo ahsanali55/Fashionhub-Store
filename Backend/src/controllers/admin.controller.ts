@@ -3,6 +3,7 @@ import User from "../models/user.model";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
+import { createNotification } from "../utils/notificationHelper";
 
 // Admin Supplier Approval Controllers
 
@@ -41,8 +42,16 @@ export const approveSupplier = asyncHandler(
       throw new ApiError(404, "Supplier not found");
     }
 
+    const alreadyApproved = supplier.status === "approved";
     supplier.status = "approved";
     await supplier.save();
+    if (!alreadyApproved) {
+      await createNotification(
+        supplier._id.toString(),
+        "Your supplier account has been approved. You can now list products and manage your store.",
+        "SUPPLIER_APPROVED",
+      );
+    }
 
     return res
       .status(200)
@@ -59,8 +68,16 @@ export const rejectSupplier = asyncHandler(
       throw new ApiError(404, "Supplier not found");
     }
 
+    const alreadyRejected = supplier.status === "rejected";
     supplier.status = "rejected";
     await supplier.save();
+    if (!alreadyRejected) {
+      await createNotification(
+        supplier._id.toString(),
+        "Your supplier application was not approved. Contact the store administrator if you need more information.",
+        "SUPPLIER_REJECTED",
+      );
+    }
 
     return res
       .status(200)

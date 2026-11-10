@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
-import { getProducts } from '@/services/product.services';
+import { getProducts, getSupplierProducts } from '@/services/product.services';
 
 export interface Product {
   id: string;
@@ -19,6 +19,7 @@ export interface Product {
   stock: number;
   createdAt: string;
   isNew?: boolean;
+  isVisible?: boolean;
 }
 
 interface ProductsState {
@@ -48,10 +49,12 @@ const initialState: ProductsState = {
 export const loadProducts = createAsyncThunk<
   Product[],
   void,
-  { rejectValue: string }
->('products/load', async (_, { rejectWithValue }) => {
+  { rejectValue: string; state: { auth: { user: { role: string } | null } } }
+>('products/load', async (_, { rejectWithValue, getState }) => {
   try {
-    return await getProducts();
+    return getState().auth.user?.role === 'supplier'
+      ? await getSupplierProducts()
+      : await getProducts();
   } catch (error) {
     if (axios.isAxiosError<{ message?: string }>(error)) {
       return rejectWithValue(
