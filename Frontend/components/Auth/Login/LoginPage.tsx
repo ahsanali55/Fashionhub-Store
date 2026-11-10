@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { useDispatch, useSelector } from 'react-redux';
-import { login, setUser, } from '@/redux/slices/features/auth/authSlice';
+import { useSelector } from 'react-redux';
+import { clearAuthError, login, setUser } from '@/redux/slices/features/auth/authSlice';
 import { useRouter } from 'next/navigation';
 import { FiMail, FiLock } from 'react-icons/fi';
 import { RootState } from '@/redux/store';
@@ -16,14 +16,13 @@ export default function LoginPage() {
   const auth = useSelector((state: RootState) => state.auth);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'customer' | 'supplier' | 'admin'>('customer');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (
   e: React.FormEvent<HTMLFormElement>
 ) => {
   e.preventDefault();
-
+  dispatch(clearAuthError());
   setLoading(true);
 
   const result = await dispatch(
@@ -81,7 +80,7 @@ export default function LoginPage() {
 
           {/* Error Message */}
           {auth.error && (
-            <div className="bg-destructive/10 border border-destructive text-destructive text-sm p-3 rounded-lg">
+            <div role="alert" className="bg-destructive/10 border border-destructive text-destructive text-sm p-3 rounded-lg">
               {auth.error}
             </div>
           )}
@@ -96,9 +95,14 @@ export default function LoginPage() {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    dispatch(clearAuthError());
+                  }}
                   placeholder="you@example.com"
                   className="flex-1 bg-transparent focus:outline-none text-sm"
+                  autoComplete="email"
+                  maxLength={254}
                   required
                 />
               </div>
@@ -112,35 +116,21 @@ export default function LoginPage() {
                 <input
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    dispatch(clearAuthError());
+                  }}
                   placeholder="••••••••"
                   className="flex-1 bg-transparent focus:outline-none text-sm"
+                  autoComplete="current-password"
+                  maxLength={72}
                   required
                 />
               </div>
             </div>
 
-            {/* Role Selector
-            <div>
-              <label className="block text-sm font-medium mb-2">Login As</label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value as 'customer' | 'supplier' | 'admin')}
-                className="w-full px-4 py-3 bg-secondary rounded-lg border border-border focus:ring-2 focus:ring-primary focus:outline-none text-sm"
-              >
-                <option value="customer">Customer</option>
-                <option value="supplier">Supplier</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div> */}
-
-            {/* Remember Me & Forgot */}
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2">
-                <input type="checkbox" className="rounded" />
-                Remember me
-              </label>
-              <Link href="/forgot-password" className="text-primary hover:underline">
+            <div className="flex justify-end">
+              <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
                 Forgot password?
               </Link>
             </div>
@@ -156,16 +146,6 @@ export default function LoginPage() {
               {loading ? 'Signing in...' : 'Sign In'}
             </motion.button>
           </form>
-
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-card text-muted-foreground">Or continue with</span>
-            </div>
-          </div>
 
           {/* Sign Up Link */}
           <p className="text-center text-sm text-muted-foreground">

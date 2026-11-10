@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Order } from "../models/order.model";
+import { Order, type IOrder } from "../models/order.model";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
@@ -8,37 +8,124 @@ import { Product } from "../models/product.model";
 
 // 1. Create a new order (Checkout)
 export const createOrder = asyncHandler(async (req: Request, res: Response) => {
-  console.log("Create order request ", req.body);
-
-  const { items, total, shippingAddress, paymentMethod } = req.body;
-  if (!items || items.length === 0) {
+  const { items, shippingAddress, paymentMethod } = req.body;
+  if (!Array.isArray(items) || items.length === 0) {
     throw new ApiError(400, "No order items provided");
   }
-  if (!shippingAddress) {
-    throw new ApiError(400, "Shipping address is required");
+  if (
+    !shippingAddress ||
+    typeof shippingAddress.fullName !== "string" ||
+    !shippingAddress.fullName.trim() ||
+    typeof shippingAddress.address !== "string" ||
+    !shippingAddress.address.trim() ||
+    typeof shippingAddress.city !== "string" ||
+    !shippingAddress.city.trim() ||
+    typeof shippingAddress.postalCode !== "string" ||
+    !shippingAddress.postalCode.trim()
+  ) {
+    throw new ApiError(400, "Complete shipping information is required");
   }
-  const order = await Order.create({
-    userId: req.user?._id,
-    items,
-    total,
-    shippingAddress,
-    paymentMethod: paymentMethod || "Cash on Delivery", // Defaults to Cash on Delivery if not specified
-    status: "pending",
+  if (paymentMethod && paymentMethod !== "Cash on Delivery") {
+    throw new ApiError(400, "Only Cash on Delivery is currently supported");
+  }
+
+  const quantities = new Map<string, number>();
+  for (const item of items) {
+    if (
+      typeof item?.productId !== "string" ||
+      !/^[a-f\d]{24}$/i.test(item.productId) ||
+      !Number.isSafeInteger(item.quantity) ||
+      item.quantity < 1
+    ) {
+      throw new ApiError(400, "Order items must include a valid product and quantity");
+    }
+    const productId = item.productId.toLowerCase();
+    const quantity = (quantities.get(productId) ?? 0) + item.quantity;
+    if (!Number.isSafeInteger(quantity)) {
+      throw new ApiError(400, "Order quantity is too large");
+    }
+    quantities.set(productId, quantity);
+  }
+
+  const products = await Product.find({
+    _id: { $in: Array.from(quantities.keys()) },
   });
+  if (products.length !== quantities.size) {
+    throw new ApiError(400, "One or more products are no longer available");
+  }
+
+  const orderItems = products.map((product) => ({
+    productId: product._id,
+    name: product.name,
+    price: product.price,
+    quantity: quantities.get(product._id.toString())!,
+    status: "pending" as const,
+  }));
+  const total = orderItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
+  const reserved: Array<{ productId: string; quantity: number }> = [];
+  let order: IOrder;
+
+  try {
+    for (const item of orderItems) {
+      const reservation = await Product.findOneAndUpdate(
+        { _id: item.productId, stock: { $gte: item.quantity } },
+        { $inc: { stock: -item.quantity } },
+        { new: true },
+      );
+      if (!reservation) {
+        throw new ApiError(409, `Not enough stock available for "${item.name}"`);
+      }
+      reserved.push({
+        productId: item.productId.toString(),
+        quantity: item.quantity,
+      });
+    }
+
+    order = await Order.create({
+      userId: req.user?._id,
+      items: orderItems,
+      total,
+      shippingAddress: {
+        fullName: shippingAddress.fullName.trim(),
+        address: shippingAddress.address.trim(),
+        city: shippingAddress.city.trim(),
+        postalCode: shippingAddress.postalCode.trim(),
+      },
+      paymentMethod: "Cash on Delivery",
+      status: "pending",
+    });
+  } catch (error) {
+    for (const reservation of reserved) {
+      try {
+        await Product.updateOne(
+          { _id: reservation.productId },
+          { $inc: { stock: reservation.quantity } },
+        );
+      } catch (rollbackError) {
+        console.error("Failed to restore stock after order creation failed", rollbackError);
+      }
+    }
+    throw error;
+  }
 
   // 1. Send ONE overall summary notification to the customer for the entire order
   await createNotification(
     order.userId.toString(),
-    `Your order has been placed successfully with ${items.length} item(s) using Cash on Delivery. Total: ${total}. `,
+    `Your order has been placed successfully with ${order.items.length} item(s) using Cash on Delivery. Total: PKR ${total.toLocaleString("en-PK")}.`,
     "ORDER_PLACED",
-    { orderId: order._id.toString(), status: "pending"}
+    { orderId: order._id.toString(), status: "pending" },
   );
 
   // 2. Loop through each item to handle individual item notifications and supplier alerts
   for (const item of order.items) {
 
     // Find the product's supplier and send them their specific notification
-    const product = await Product.findById(item.productId);
+    const product = products.find(
+      (candidate) => candidate._id.toString() === item.productId.toString(),
+    );
     if (product && product.supplier) {
       await createNotification(
         product.supplier.toString(),
@@ -162,42 +249,55 @@ export const updateOrderStatus = asyncHandler(
       }
     }
 
-    // Find the specific item in the order and update its status
-    let itemFound = false;
-    order.items.forEach((item: any) => {
-      if (item.productId.toString() === productId) {
-        item.status = status;
-        itemFound = true;
-      }
-    });
-
-    if (!itemFound) {
+    const updatedItem = order.items.find(
+      (item) => item.productId.toString() === productId,
+    );
+    if (!updatedItem) {
       throw new ApiError(404, "Product item not found in this order");
     }
 
-    await order.save();
+    if (req.user?.role === "supplier" && !productIds.includes(productId)) {
+      throw new ApiError(403, "You do not own this product in the order");
+    }
 
-    // Find the specific item we just updated to grab its exact current status
-    const updatedItem = order.items.find(
-      (item: any) => item.productId.toString() === productId
+    const statusProgression = ["pending", "processing", "shipped", "delivered"];
+    const currentStatus = updatedItem.status || "pending";
+    const currentIndex = statusProgression.indexOf(currentStatus);
+    const requestedIndex = statusProgression.indexOf(status);
+    if (requestedIndex !== currentIndex + 1) {
+      throw new ApiError(
+        409,
+        `Order items can only advance to ${statusProgression[currentIndex + 1] ?? "a later status"}`,
+      );
+    }
+    updatedItem.status = status;
+    const itemStatuses = order.items.map((item) => item.status || "pending");
+    const overallIndex = Math.min(
+      ...itemStatuses.map((itemStatus) => {
+        const index = statusProgression.indexOf(itemStatus);
+        return index < 0 ? 0 : index;
+      }),
     );
-    const currentStatus = updatedItem ? updatedItem.status : status;
+    order.status = statusProgression[
+      overallIndex
+    ] as IOrder["status"];
+    await order.save();
 
    // 1. Notify the customer (Already exists)
     await createNotification(
       order.userId.toString(),
-      `Your order item "${updatedItem ? updatedItem.name : 'Product'}" status has been updated.`,
+      `Your order item "${updatedItem.name}" status has been updated.`,
       "STATUS_UPDATE",
-      { orderId: order._id.toString(), productId: productId, status: currentStatus }
+      { orderId: order._id.toString(), productId: productId, status }
     );
 
     // 2. 🔔 ADD THIS: Notify the supplier so it appears in their own /notifications/my list
     if (req.user?._id) {
       await createNotification(
         req.user._id.toString(),
-        `You successfully updated item "${updatedItem ? updatedItem.name : 'Product'}".`,
+        `You successfully updated item "${updatedItem.name}".`,
         "SUPPLIER_STATUS_UPDATE_LOG",
-        { orderId: order._id.toString(), productId: productId, status: currentStatus }
+        { orderId: order._id.toString(), productId: productId, status }
       );
     }
 

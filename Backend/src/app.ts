@@ -15,10 +15,14 @@ import cartRoutes from "./routes/cart.routes";
 import wishlistRoutes from "./routes/wishlist.routes";
 import categoryRoutes from "./routes/category.routes";
 const app = express();
+const allowedFrontendOrigins = (process.env.FRONTEND_URL || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: allowedFrontendOrigins,
     credentials: true,
   })
 );

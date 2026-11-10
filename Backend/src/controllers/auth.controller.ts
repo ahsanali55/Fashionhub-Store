@@ -1,41 +1,57 @@
 import { Request, Response } from "express";
-import { deleteFromCloudinary, refreshAccessToken, registerUser, uploadOnCloudinary } from "../services/auth.service";
+import {
+  deleteFromCloudinary,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  registerUser,
+} from "../services/auth.service";
 import User from "../models/user.model";
-import { loginUser } from "../services/auth.service";
 import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/asyncHandler";
-import { logoutUser } from "../services/auth.service";
 import { generateAccessToken } from "../utils/generateAccessToken";
 import { generateRefreshToken } from "../utils/generateRefreshToken";
 import { ApiError } from "../utils/ApiError";
-import { forgotPassword } from "../services/auth.service";
-import { resetPassword } from "../services/auth.service";
+import { IUser } from "../interfaces/user.interface";
+import { uploadImage } from "../utils/uploadImage";
+import bcrypt from "bcrypt";
+
+const authCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+};
+
+const serializeAuthUser = (user: IUser) => ({
+  id: user._id.toString(),
+  fullName: user.fullName,
+  email: user.email,
+  role: user.role,
+  avatar: user.avatar,
+  notificationsEnabled: user.notificationsEnabled ?? true,
+  createdAt: user.createdAt,
+  updatedAt: user.updatedAt,
+});
 
 // Register controller
 export const register = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    console.log("Register request ", req.body);
-
     const user = await registerUser(req.body);
     const accessToken = generateAccessToken(user._id.toString(), user.role);
-    res.status(201).json(
-      new ApiResponse("User registered successfully.", {
-        user: {
-          id: user._id,
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-        },
-        accessToken,
-      }),
-    );
+    const refreshToken = generateRefreshToken(user._id.toString());
+    user.refreshToken = refreshToken;
+    await user.save();
+    res
+      .cookie("accessToken", accessToken, { ...authCookieOptions, maxAge: 15 * 60 * 1000 })
+      .cookie("refreshToken", refreshToken, { ...authCookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 })
+      .status(201)
+      .json(new ApiResponse("User registered successfully.", { user: serializeAuthUser(user) }));
   },
 );
 
 // Login controller
 export const login = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    console.log("Login request ", req.body);
     const user = await loginUser(req.body);
 
     const accessToken = generateAccessToken(user._id.toString(), user.role);
@@ -46,29 +62,19 @@ export const login = asyncHandler(
       refreshToken,
     });
 
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax" as const,
-    };
     res
       .cookie("accessToken", accessToken, {
-        ...cookieOptions,
+        ...authCookieOptions,
         maxAge: 15 * 60 * 1000, // 15 minutes
       })
       .cookie("refreshToken", refreshToken, {
-        ...cookieOptions,
+        ...authCookieOptions,
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       })
       .status(200)
       .json(
         new ApiResponse("Login successful.", {
-          user: {
-            id: user._id,
-            fullName: user.fullName,
-            email: user.email,
-            role: user.role,
-          },
+          user: serializeAuthUser(user),
         }),
       );
   },
@@ -76,62 +82,51 @@ export const login = asyncHandler(
 // Getting the current logged in user
 export const getCurrentUserProfile = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    console.log("Getting current user profile request ");
-
+    if (!req.user) throw new ApiError(401, "Authentication required");
     res.json({
       success: true,
-      user: req.user,
+      user: serializeAuthUser(req.user),
     });
   },
 );
 
 // getting the customer dashboard
 export const getCustomerDashboard = asyncHandler((req, res) => {
-  console.log("Getting customer dashboard request ", req.body);
-
   res.json({
     success: true,
     message: "Welcome Customer!",
-    user: req.user,
+    user: req.user ? serializeAuthUser(req.user) : null,
   });
 });
 
 // getting the supplier dashboard
 export const getSupplierDashboard = asyncHandler((req, res) => {
-  console.log("Getting supplier dashboard request ", req.body);
-
   res.json({
     success: true,
     message: "Welcome Supplier!",
-    user: req.user,
+    user: req.user ? serializeAuthUser(req.user) : null,
   });
 });
 
 // getting the admin dashboard
 export const getAdminDashboard = asyncHandler((req, res) => {
-  console.log("Getting admin dashboard request ", req.body);
-
   res.json({
     success: true,
     message: "Welcome Admin!",
-    user: req.user,
+    user: req.user ? serializeAuthUser(req.user) : null,
   });
 });
 
 // refresh access token controller
 export const refreshToken = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    console.log("Refresh token request ", req.body);
-
     const refreshTokenCookie = req.cookies.refreshToken;
     const user = await refreshAccessToken(refreshTokenCookie);
     const accessToken = generateAccessToken(user._id.toString(), user.role);
 
     res
       .cookie("accessToken", accessToken, {
-        httpOnly: true,
-        secure: false,
-        sameSite: "lax",
+        ...authCookieOptions,
         maxAge: 15 * 60 * 1000,
       })
       .status(200)
@@ -142,7 +137,6 @@ export const refreshToken = asyncHandler(
 // logout controller
 export const logout = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    console.log("Logout request ", req.body);
     if (!req.user) {
       throw new ApiError(401, "Unauthorized");
     }
@@ -166,7 +160,6 @@ export const getCurrentUser = asyncHandler(
     if (!req.user) {
       throw new ApiError(401, "Unauthorized");
     }
-    console.log("Getting current user profile request ", req.body);
     res.status(200).json(
       new ApiResponse("Current user fetched successfully.", {
         user: {
@@ -174,6 +167,8 @@ export const getCurrentUser = asyncHandler(
           fullName: req.user.fullName,
           email: req.user.email,
           role: req.user.role,
+          avatar: req.user.avatar,
+          notificationsEnabled: req.user.notificationsEnabled ?? true,
           createdAt: req.user.createdAt,
           updatedAt: req.user.updatedAt,
         },
@@ -182,52 +177,13 @@ export const getCurrentUser = asyncHandler(
   },
 );
 
-// Forgot Password controller
-export const forgotPasswordController = asyncHandler(
-  async (req: Request, res: Response): Promise<void> => {
-    console.log("Forgot password request ", req.body);
-    const { email } = req.body;
-
-    const { resetToken } = await forgotPassword(email);
-
-    const resetUrl = `http://localhost:5000/api/auth/reset-password/${resetToken}`;
-
-    res.status(200).json(
-      new ApiResponse("Password reset link generated.", {
-        resetUrl,
-      }),
-    );
-  },
-);
-
-// Reset Passward
-export const resetPasswordController = asyncHandler(
-  async (req: Request, res: Response): Promise<void> => {
-    console.log("Reset password request ", req.body);
-    const { token } = req.params;
-    const { password } = req.body;
-    if (Array.isArray(token)) {
-      throw new Error("Invalid reset token.");
-    }
-    await resetPassword(token as string, password);
-    res.status(200).json(new ApiResponse("Password reset successfully.", {}));
-  },
-);
-
 // Update Avatar controller
 export const updateAvatar = asyncHandler(async (req: Request, res: Response) => {
-  const localFilePath = req.file?.path;
-  console.log("local File Path ", localFilePath )
-  if (!localFilePath) {
+  if (!req.file?.buffer) {
     throw new ApiError(400, "Avatar image file is missing");
   }
 
   // Upload new image to Cloudinary
-  const cloudinaryResponse = await uploadOnCloudinary(localFilePath);
-  if (!cloudinaryResponse?.secure_url) {
-    throw new ApiError(500, "Failed to upload image to Cloudinary");
-  }
-
   const userId = req.user?._id;
   const user = await User.findById(userId);
 
@@ -235,14 +191,16 @@ export const updateAvatar = asyncHandler(async (req: Request, res: Response) => 
     throw new ApiError(404, "User not found");
   }
 
-  // If user already has an old avatar, delete it from Cloudinary
-  if (user.avatar) {
-    await deleteFromCloudinary(user.avatar);
+  const previousAvatar = user.avatar;
+  const avatar = await uploadImage(req.file.buffer, "fashionhub/avatars");
+  user.avatar = avatar;
+  try {
+    await user.save();
+  } catch (error) {
+    await deleteFromCloudinary(avatar);
+    throw error;
   }
-
-  // Save new avatar URL to user document
-  user.avatar = cloudinaryResponse.secure_url;
-  await user.save();
+  if (previousAvatar) await deleteFromCloudinary(previousAvatar);
 
   return res.status(200).json(
     new ApiResponse("Avatar updated successfully.", { avatar: user.avatar })
@@ -253,22 +211,21 @@ export const updateAvatar = asyncHandler(async (req: Request, res: Response) => 
 export const updateProfile = asyncHandler(async (req: Request, res: Response) => {
   const { fullName, email } = req.body;
 
-  console.log("Update user profile request ", req.body);
-
   // Build a dynamic update object so only provided fields are changed
   const updateData: { fullName?: string; email?: string } = {};
 
   if (fullName !== undefined) {
-    updateData.fullName = fullName;
+    updateData.fullName = fullName.trim();
   }
 
   if (email !== undefined) {
     // Check if the new email is already taken by another user
-    const existingUser = await User.findOne({ email, _id: { $ne: req.user?._id } });
+    const normalizedEmail = email.trim().toLowerCase();
+    const existingUser = await User.findOne({ email: normalizedEmail, _id: { $ne: req.user?._id } });
     if (existingUser) {
       throw new ApiError(400, "Email is already in use by another account");
     }
-    updateData.email = email;
+    updateData.email = normalizedEmail;
   }
 
   const updatedUser = await User.findByIdAndUpdate(
@@ -282,6 +239,121 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
   }
 
   return res.status(200).json(
-    new ApiResponse("Profile updated successfully", updatedUser)
+    new ApiResponse("Profile updated successfully", serializeAuthUser(updatedUser))
   );
 });
+
+export const updateNotificationPreference = asyncHandler(async (req: Request, res: Response) => {
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    { $set: { notificationsEnabled: req.body.notificationsEnabled } },
+    { new: true, runValidators: true },
+  );
+  if (!user) throw new ApiError(404, "User not found");
+  return res.status(200).json(
+    new ApiResponse("Notification preference saved", {
+      notificationsEnabled: user.notificationsEnabled,
+    }),
+  );
+});
+
+export const changePassword = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  if (!req.user) throw new ApiError(401, "Authentication required");
+
+  const user = await User.findById(req.user._id).select("+password");
+  if (!user) throw new ApiError(404, "User not found");
+
+  const { currentPassword, newPassword } = req.body as {
+    currentPassword: string;
+    newPassword: string;
+  };
+  if (!(await user.comparePassword(currentPassword))) {
+    throw new ApiError(400, "Current password is incorrect");
+  }
+  if (await user.comparePassword(newPassword)) {
+    throw new ApiError(400, "New password must be different from your current password");
+  }
+
+  user.password = newPassword;
+  const refreshToken = generateRefreshToken(user._id.toString());
+  user.refreshToken = refreshToken;
+  await user.save();
+
+  const accessToken = generateAccessToken(user._id.toString(), user.role);
+  res
+    .cookie("accessToken", accessToken, {
+      ...authCookieOptions,
+      maxAge: 15 * 60 * 1000,
+    })
+    .cookie("refreshToken", refreshToken, {
+      ...authCookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    })
+    .status(200)
+    .json(new ApiResponse("Password changed successfully.", {}));
+});
+
+export const getPasswordRecoveryQuestion = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const email = String(req.body.email).trim().toLowerCase();
+    const user = await User.findOne({ email }).select("+recoveryAnswerHash");
+    res.status(200).json(
+      new ApiResponse("Recovery question lookup completed.", {
+        question: user?.recoveryAnswerHash ? user.recoveryQuestion : null,
+      }),
+    );
+  },
+);
+
+export const recoverPassword = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { email, recoveryAnswer, newPassword } = req.body as {
+      email: string;
+      recoveryAnswer: string;
+      newPassword: string;
+    };
+    const user = await User.findOne({ email: email.trim().toLowerCase() })
+      .select("+password +recoveryAnswerHash");
+    if (
+      !user ||
+      !user.recoveryAnswerHash ||
+      !(await bcrypt.compare(recoveryAnswer.trim().toLocaleLowerCase(), user.recoveryAnswerHash))
+    ) {
+      throw new ApiError(400, "Unable to verify your recovery answer. Check your details or contact support.");
+    }
+
+    if (await user.comparePassword(newPassword)) {
+      throw new ApiError(400, "Choose a password different from your current password.");
+    }
+
+    user.password = newPassword;
+    user.refreshToken = null;
+    await user.save();
+
+    res.status(200).json(
+      new ApiResponse("Password reset successfully. You can now sign in.", {}),
+    );
+  },
+);
+
+export const setPasswordRecoveryQuestion = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    if (!req.user) throw new ApiError(401, "Authentication required");
+    const user = await User.findById(req.user._id).select("+password");
+    if (!user) throw new ApiError(404, "User not found");
+
+    const { currentPassword, recoveryQuestion, recoveryAnswer } = req.body as {
+      currentPassword: string;
+      recoveryQuestion: string;
+      recoveryAnswer: string;
+    };
+    if (!(await user.comparePassword(currentPassword))) {
+      throw new ApiError(400, "Current password is incorrect");
+    }
+
+    user.recoveryQuestion = recoveryQuestion;
+    user.recoveryAnswerHash = await bcrypt.hash(recoveryAnswer.trim().toLocaleLowerCase(), 12);
+    await user.save();
+    res.status(200).json(new ApiResponse("Recovery question updated successfully.", {}));
+  },
+);

@@ -10,6 +10,8 @@ import { OrderTimeline } from '@/components/Reusable_Components/OrderTimeline';
 import { EmptyState } from '@/components/Reusable_Components/EmptyState';
 import { BackButton } from '@/components/Reusable_Components/BackButton';
 import { LoadingSpinner } from '@/components/Admin/Loaders/LoadingSpinner';
+import { getMyOrders, getOrderStatus, type Order } from '@/services/commerce.services';
+import { formatPrice } from '@/lib/utils';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -24,23 +26,40 @@ const itemVariants = {
 export default function CustomerOrdersPage() {
   const router = useRouter();
   const auth = useSelector((state: RootState) => state.auth);
-  const orders = useSelector((state: RootState) => state.orders);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    if (!auth.isAuthenticated) {
-      router.push('/login');
+    if (!auth.isAuthenticated || auth.user?.role !== 'customer') {
+      router.replace('/login');
       return;
     }
-    setIsAuthorized(true);
-    const timer = setTimeout(() => setIsLoading(false), 400);
-    return () => clearTimeout(timer);
-  }, [auth.isAuthenticated, router]);
 
-  if (!isAuthorized) {
-    return null;
-  }
+    let active = true;
+    setIsLoading(true);
+    setLoadError('');
+    getMyOrders()
+      .then((customerOrders) => {
+        if (active) setOrders(customerOrders);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setLoadError(
+            error instanceof Error ? error.message : 'Unable to load your orders.',
+          );
+        }
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [auth.isAuthenticated, auth.user?.role, router]);
+
+  if (!auth.isAuthenticated || auth.user?.role !== 'customer') return null;
 
   if (isLoading) {
     return <LoadingSpinner fullScreen size="lg" text="Loading your orders..." />;
@@ -55,12 +74,16 @@ export default function CustomerOrdersPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <BackButton fallbackHref="/customer/dashboard" />
+          <BackButton fallbackHref="/customer/dashboard" alwaysNavigateToFallback />
           <h1 className="text-4xl font-bold mb-2">My Orders</h1>
           <p className="text-muted-foreground">Track and manage your orders</p>
         </motion.div>
 
-        {Array.isArray(orders) && orders.length === 0 ? (
+        {loadError ? (
+          <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-destructive">
+            {loadError}
+          </p>
+        ) : orders.length === 0 ? (
           <EmptyState
             type="orders"
             title="No orders yet"
@@ -75,29 +98,31 @@ export default function CustomerOrdersPage() {
             animate="visible"
             className="space-y-8"
           >
-            {Array.isArray(orders) && orders.map((order) => (
-              <motion.div key={order.id} variants={itemVariants} className="bg-card rounded-lg shadow-sm p-8">
+            {orders.map((order) => {
+              const status = getOrderStatus(order);
+              return (
+              <motion.div key={order._id} variants={itemVariants} className="rounded-lg border border-border bg-card p-8 text-card-foreground shadow-sm">
                 {/* Order Header */}
                 <div className="flex items-center justify-between mb-8 pb-6 border-b border-border">
                   <div>
-                    <h2 className="text-2xl font-bold">Order #{order.id}</h2>
+                    <h2 className="text-2xl font-bold">Order #{order._id}</h2>
                     <p className="text-muted-foreground text-sm">
-                      Placed on {new Date(order.date).toLocaleDateString()}
+                      Placed on {new Date(order.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-primary">${order.total.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-primary">{formatPrice(order.total)}</p>
                     <span
-                      className={`inline-block px-3 py-1 rounded-full text-xs font-semibold mt-2 capitalize ${order.status === 'delivered'
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-semibold mt-2 capitalize ${status === 'delivered'
                         ? 'bg-green-100 text-green-800'
-                        : order.status === 'shipped'
+                        : status === 'shipped'
                           ? 'bg-purple-100 text-purple-800'
-                          : order.status === 'processing'
+                          : status === 'processing'
                             ? 'bg-blue-100 text-blue-800'
                             : 'bg-yellow-100 text-yellow-800'
                         }`}
                     >
-                      {order.status}
+                      {status}
                     </span>
                   </div>
                 </div>
@@ -110,9 +135,9 @@ export default function CustomerOrdersPage() {
                       <div key={idx} className="flex items-center justify-between">
                         <div>
                           <p className="font-medium">{item.name}</p>
-                          <p className="text-sm text-muted-foreground">Qty: 1</p>
+                          <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
                         </div>
-                        <p className="font-semibold">${item.price ? item.price.toFixed(2) : '0.00'}</p>
+                        <p className="font-semibold">{formatPrice(item.price * item.quantity)}</p>
                       </div>
                     ))}
                   </div>
@@ -124,15 +149,15 @@ export default function CustomerOrdersPage() {
                   <OrderTimeline
                     steps={[
                       {
-                        status: order.status === 'pending' ? 'current' : 'completed',
+                        status: status === 'pending' ? 'current' : 'completed',
                         label: 'Order Confirmed',
-                        date: new Date(order.date).toLocaleDateString(),
+                        date: new Date(order.createdAt).toLocaleDateString(),
                         icon: <FiPackage className="w-5 h-5" />,
                       },
                       {
                         status:
-                          order.status === 'processing' || order.status === 'shipped' || order.status === 'delivered'
-                            ? order.status === 'processing'
+                          status === 'processing' || status === 'shipped' || status === 'delivered'
+                            ? status === 'processing'
                               ? 'current'
                               : 'completed'
                             : 'pending',
@@ -141,8 +166,8 @@ export default function CustomerOrdersPage() {
                       },
                       {
                         status:
-                          order.status === 'shipped' || order.status === 'delivered'
-                            ? order.status === 'shipped'
+                          status === 'shipped' || status === 'delivered'
+                            ? status === 'shipped'
                               ? 'current'
                               : 'completed'
                             : 'pending',
@@ -150,7 +175,7 @@ export default function CustomerOrdersPage() {
                         icon: <FiPackage className="w-5 h-5" />,
                       },
                       {
-                        status: order.status === 'delivered' ? 'completed' : 'pending',
+                        status: status === 'delivered' ? 'completed' : 'pending',
                         label: 'Delivered',
                         icon: <FiPackage className="w-5 h-5" />,
                       },
@@ -158,7 +183,8 @@ export default function CustomerOrdersPage() {
                   />
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </motion.div>
         )}
       </div>

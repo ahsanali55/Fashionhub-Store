@@ -15,9 +15,19 @@ import {
 
 import { RootState } from '@/redux/store';
 import { addToCart } from '@/redux/slices/cartSlice';
-import { addToWishlist } from '@/redux/slices/wishlistSlice';
+import { addToWishlist, removeFromWishlist } from '@/redux/slices/wishlistSlice';
 import { useAppDispatch, useAppSelector } from '@/hooks/redux';
-
+import { formatPrice } from '@/lib/utils';
+import { ProductCard } from './ProductCard';
+import { useEffect, useRef, useState } from 'react';
+import { loadProducts } from '@/redux/slices/productsSlice';
+import type { Product } from '@/redux/slices/productsSlice';
+import {
+  createProductReview,
+  getMyOrders,
+  getProductReviews,
+  type Review,
+} from '@/services/commerce.services';
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -54,7 +64,90 @@ export default function ViewProductDetailPage() {
   const product = products.items.find(
     (item) => item.id === id
   );
+  const [isAdded, setIsAdded] = useState(false);
+  const addedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wishlistItems = useAppSelector(
+    (state) => state.wishlist.items
+  );
+  const auth = useAppSelector((state) => state.auth);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewError, setReviewError] = useState('');
+  const [reviewSuccess, setReviewSuccess] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [canReview, setCanReview] = useState(false);
+  const [isCheckingReviewEligibility, setIsCheckingReviewEligibility] = useState(false);
 
+  useEffect(() => {
+    let active = true;
+    getProductReviews(id)
+      .then((data) => { if (active) setReviews(data); })
+      .catch((error: unknown) => {
+        if (active) setReviewError(error instanceof Error ? error.message : 'Unable to load reviews.');
+      });
+    return () => { active = false; };
+  }, [id]);
+
+  useEffect(() => {
+    if (auth.user?.role !== 'customer') {
+      setCanReview(false);
+      setIsCheckingReviewEligibility(false);
+      return;
+    }
+
+    let active = true;
+    setCanReview(false);
+    setIsCheckingReviewEligibility(true);
+    getMyOrders()
+      .then((orders) => {
+        if (!active) return;
+        setCanReview(orders.some((order) => order.items.some((item) => {
+          return item.productId === id && item.status === 'delivered';
+        })));
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setReviewError(error instanceof Error ? error.message : 'Unable to verify your purchase.');
+        }
+      })
+      .finally(() => {
+        if (active) setIsCheckingReviewEligibility(false);
+      });
+    return () => { active = false; };
+  }, [auth.user?.id, auth.user?.role, id]);
+
+  const hasReviewed = reviews.some((review) =>
+    typeof review.userId === 'string'
+      ? review.userId === auth.user?.id
+      : review.userId._id === auth.user?.id,
+  );
+
+  const handleReviewSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (auth.user?.role !== 'customer') return;
+    setIsSubmittingReview(true);
+    setReviewError('');
+    setReviewSuccess('');
+    try {
+      const review = await createProductReview(id, {
+        rating: reviewRating,
+        comment: reviewComment.trim(),
+      });
+      setReviews((current) => [review, ...current]);
+      setReviewComment('');
+      setReviewSuccess('Your review has been submitted.');
+      void dispatch(loadProducts());
+    } catch (error) {
+      setReviewError(error instanceof Error ? error.message : 'Unable to submit your review.');
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  const isWishlisted = wishlistItems.some(
+    (i) => i.id === product?.id
+  );
   if (!product) {
     return (
       <main className="min-h-screen bg-background flex items-center justify-center">
@@ -79,11 +172,11 @@ export default function ViewProductDetailPage() {
     );
   }
 
-  const handleAddToCart = () => {
-    dispatch(addToCart(product));
+  const handleAddToCart = (product: Product) => {
+    dispatch(addToCart({ ...product, quantity: 1 }));
   };
 
-  const handleAddToWishlist = () => {
+  const handleAddToWishlist = (product: Product) => {
     dispatch(addToWishlist(product));
   };
 
@@ -180,7 +273,14 @@ export default function ViewProductDetailPage() {
 
             {/* Wishlist */}
             <button
-              onClick={handleAddToWishlist}
+              onClick={() => {
+                if (isWishlisted) {
+                  dispatch(removeFromWishlist(product.id));
+                }
+                else {
+                  handleAddToWishlist(product);
+                }
+              }}
               aria-label="Add to wishlist"
               className="
                 absolute
@@ -196,9 +296,13 @@ export default function ViewProductDetailPage() {
                 text-foreground
                 hover:text-primary
                 transition
+                cursor-pointer
               "
             >
-              <FiHeart size={19} />
+              <FiHeart
+                size={18}
+                className={isWishlisted ? 'fill-primary text-primary' : ''}
+              />
             </button>
           </motion.div>
 
@@ -261,7 +365,7 @@ export default function ViewProductDetailPage() {
 
             {/* Price */}
             <p className="text-3xl font-bold mb-7">
-              ${product.price.toFixed(2)}
+              {formatPrice(product.price)}
             </p>
 
             {/* Description */}
@@ -322,51 +426,54 @@ export default function ViewProductDetailPage() {
               <motion.button
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={handleAddToCart}
+                onClick={() => {
+                 
+                  handleAddToCart(product) 
+                  setIsAdded(true);
+                  if (addedTimeoutRef.current) {
+                clearTimeout(addedTimeoutRef.current);
+              }
+                 addedTimeoutRef.current = setTimeout(() => {
+                setIsAdded(false);
+              }, 2000);
+                }
+                }              
                 disabled={!product.inStock}
-                className="
+                className={`
                   flex-1
                   h-12
                   rounded-lg
-                  bg-primary
                   text-white
                   font-semibold
                   text-sm
                   flex
                   items-center
+                  cursor-pointer
                   justify-center
-                  gap-2
-                  hover:bg-orange-600
+                  gap-2         
                   transition
                   disabled:opacity-50
                   disabled:cursor-not-allowed
-                "
+                  ${isAdded
+                    ? 'bg-orange-600'
+                    : 'bg-orange-500 hover:bg-orange-600'
+                  }
+                `}
               >
-                <FiShoppingBag size={17} />
-                {product.inStock ? 'Add to Cart' : 'Sold Out'}
+                {isAdded ? (
+                  <>
+                    <span className="flex items-center justify-center w-4 h-4 rounded-full border border-current text-[10px]">
+                      ✓
+                    </span>
+                    Added to Cart
+                  </>
+                ) : (
+                  <>
+                    <FiShoppingBag size={16} />
+                    Add to Cart
+                  </>
+                )}
               </motion.button>
-
-              <motion.button
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleAddToWishlist}
-                className="
-                  w-12
-                  h-12
-                  rounded-lg
-                  border
-                  border-border
-                  flex
-                  items-center
-                  justify-center
-                  hover:text-primary
-                  hover:border-primary
-                  transition
-                "
-              >
-                <FiHeart size={18} />
-              </motion.button>
-
             </div>
 
             {/* Supplier */}
@@ -400,6 +507,81 @@ export default function ViewProductDetailPage() {
           </motion.div>
 
         </motion.section>
+
+        <section className="mt-20 border-t border-border pt-10">
+          <h2 className="text-2xl font-bold mb-6">Customer Reviews</h2>
+          {reviewError && <p role="alert" className="mb-4 text-sm text-destructive">{reviewError}</p>}
+          {auth.user?.role === 'customer' && isCheckingReviewEligibility && (
+            <p className="mb-6 text-sm text-muted-foreground">Checking your order history...</p>
+          )}
+          {auth.user?.role === 'customer' && !isCheckingReviewEligibility && canReview && !hasReviewed && (
+            <form onSubmit={handleReviewSubmit} className="mb-8 max-w-2xl space-y-4 rounded-xl border border-border bg-card p-6">
+              <label className="block text-sm font-medium">
+                Rating
+                <select
+                  value={reviewRating}
+                  onChange={(event) => setReviewRating(Number(event.target.value))}
+                  className="mt-2 block rounded-lg border border-border bg-background px-3 py-2"
+                >
+                  {[5, 4, 3, 2, 1].map((rating) => (
+                    <option key={rating} value={rating}>{rating} stars</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm font-medium">
+                Your review
+                <textarea
+                  value={reviewComment}
+                  onChange={(event) => setReviewComment(event.target.value)}
+                  required
+                  rows={3}
+                  maxLength={1000}
+                  className="mt-2 block w-full rounded-lg border border-border bg-background px-3 py-2"
+                />
+              </label>
+              {reviewSuccess && <p role="status" className="text-sm text-green-700">{reviewSuccess}</p>}
+              <button
+                type="submit"
+                disabled={isSubmittingReview || !reviewComment.trim()}
+                className="rounded-lg bg-primary px-5 py-2 text-primary-foreground disabled:opacity-50"
+              >
+                {isSubmittingReview ? 'Submitting...' : 'Submit Review'}
+              </button>
+            </form>
+          )}
+          {auth.user?.role === 'customer' && !isCheckingReviewEligibility && !canReview && (
+            <p className="mb-6 text-sm text-muted-foreground">
+              Reviews are available after an order containing this product has been delivered.
+            </p>
+          )}
+          {auth.user?.role === 'customer' && !isCheckingReviewEligibility && canReview && hasReviewed && (
+            <p className="mb-6 text-sm text-muted-foreground">You have already reviewed this product.</p>
+          )}
+          {auth.user?.role !== 'customer' && (
+            <p className="mb-6 text-sm text-muted-foreground">Sign in as a customer to leave a review.</p>
+          )}
+          {reviewError && !auth.user && <p role="alert" className="mb-4 text-sm text-destructive">{reviewError}</p>}
+          {reviews.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No reviews yet.</p>
+          ) : (
+            <div className="space-y-4">
+              {reviews.map((review) => (
+                <article key={review._id} className="rounded-xl border border-border bg-card p-5">
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="font-semibold">
+                      {typeof review.userId === 'string' ? 'Customer' : review.userId.fullName}
+                    </p>
+                    <span className="text-sm text-amber-600">{review.rating}/5</span>
+                  </div>
+                  <p className="mt-3 text-sm text-muted-foreground">{review.comment}</p>
+                  <time className="mt-3 block text-xs text-muted-foreground">
+                    {new Date(review.createdAt).toLocaleDateString()}
+                  </time>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
 
 
         {/* ================= RELATED PRODUCTS ================= */}
@@ -480,226 +662,14 @@ export default function ViewProductDetailPage() {
 
               {relatedProducts.map((item) => {
 
-                const outOfStock = !item.inStock;
+
 
                 return (
-                  <motion.article
-                    key={item.id}
-                    variants={itemVariants}
-                    whileHover={{ y: -4 }}
-                    transition={{ duration: 0.2 }}
-                    className="group"
-                  >
-
-                    {/* Image */}
-                    <div
-                      className="
-                        relative
-                        aspect-[4/5]
-                        overflow-hidden
-                        rounded-xl
-                        bg-muted
-                      "
-                    >
-
-                      <Link href={`/product/${item.id}`}>
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="
-                            w-full
-                            h-full
-                            object-cover
-                            transition-transform
-                            duration-500
-                            group-hover:scale-105
-                          "
-                        />
-                      </Link>
-
-
-                      {/* Badge */}
-                      {outOfStock && (
-                        <span
-                          className="
-                            absolute
-                            top-3
-                            left-3
-                            px-2.5
-                            py-1
-                            rounded-full
-                            bg-foreground
-                            text-white
-                            text-[11px]
-                            font-bold
-                          "
-                        >
-                          SOLD OUT
-                        </span>
-                      )}
-
-
-                      {/* Wishlist */}
-                      <button
-                        onClick={() =>
-                          dispatch(addToWishlist(item))
-                        }
-                        aria-label="Add to wishlist"
-                        className="
-                          absolute
-                          top-3
-                          right-3
-                          w-10
-                          h-10
-                          rounded-full
-                          bg-white/95
-                          flex
-                          items-center
-                          justify-center
-                          text-foreground
-                          hover:text-primary
-                          transition
-                        "
-                      >
-                        <FiHeart size={18} />
-                      </button>
-
-
-                      {/* Quick Add */}
-                      {!outOfStock && (
-                        <button
-                          onClick={() =>
-                            dispatch(addToCart(item))
-                          }
-                          className="
-                            absolute
-                            bottom-3
-                            left-3
-                            right-3
-                            h-11
-                            rounded-lg
-                            bg-white
-                            text-foreground
-                            font-semibold
-                            text-sm
-                            flex
-                            items-center
-                            justify-center
-                            gap-2
-                            opacity-0
-                            translate-y-2
-                            group-hover:opacity-100
-                            group-hover:translate-y-0
-                            transition-all
-                            duration-300
-                            shadow-lg
-                          "
-                        >
-                          <FiShoppingBag size={16} />
-                          Add to Cart
-                        </button>
-                      )}
-
-                    </div>
-
-
-                    {/* Information */}
-                    <div className="pt-4">
-
-                      <p
-                        className="
-                          text-xs
-                          font-semibold
-                          uppercase
-                          tracking-wider
-                          text-muted-foreground
-                          mb-1
-                        "
-                      >
-                        {item.supplier}
-                      </p>
-
-                      <div className="flex items-start justify-between gap-3">
-
-                        <Link
-                          href={`/product/${item.id}`}
-                          className="min-w-0"
-                        >
-                          <h3
-                            className="
-                              font-semibold
-                              text-sm
-                              md:text-base
-                              truncate
-                              hover:text-primary
-                              transition
-                            "
-                          >
-                            {item.name}
-                          </h3>
-                        </Link>
-
-                        <span
-                          className="
-                            text-sm
-                            font-bold
-                            shrink-0
-                          "
-                        >
-                          ${item.price.toFixed(2)}
-                        </span>
-
-                      </div>
-
-
-                      {/* Category + Rating */}
-                      <div
-                        className="
-                          flex
-                          items-center
-                          justify-between
-                          mt-2
-                        "
-                      >
-
-                        <span className="text-xs text-muted-foreground">
-                          {item.category}
-                        </span>
-
-                        <span className="text-xs font-medium">
-                          ★ {item.rating.toFixed(1)}
-                          <span className="text-muted-foreground">
-                            {' '}
-                            ({item.reviews})
-                          </span>
-                        </span>
-
-                      </div>
-
-
-                      {/* View details */}
-                      <Link
-                        href={`/product/${item.id}`}
-                        className="
-                          inline-flex
-                          items-center
-                          gap-1
-                          mt-3
-                          text-xs
-                          font-semibold
-                          text-primary
-                          opacity-0
-                          group-hover:opacity-100
-                          transition
-                        "
-                      >
-                        View details
-                        <FiArrowUpRight size={13} />
-                      </Link>
-
-                    </div>
-
-                  </motion.article>
+                  <ProductCard key={item.id} product={item}
+                    onAddToCart={() => dispatch(addToCart({ ...item, quantity: 1, })
+                    )}
+                    onAddToWishlist={() => handleAddToWishlist(item)}
+                  />
                 );
               })}
 

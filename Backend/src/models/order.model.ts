@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IShippingAddress {
+  fullName?: string;
   address: string;
   city: string;
   postalCode: string;
@@ -41,6 +42,7 @@ const orderSchema = new Schema<IOrder>(
     ],
     total: { type: Number, required: true },
     shippingAddress: { 
+      fullName: { type: String, trim: true },
       address: { type: String, required: true },
       city: { type: String, required: true },
       postalCode: { type: String, required: true },

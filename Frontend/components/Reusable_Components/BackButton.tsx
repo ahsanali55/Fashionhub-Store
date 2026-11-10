@@ -7,13 +7,18 @@ import { motion } from 'framer-motion';
 interface BackButtonProps {
   fallbackHref?: string;
   showText?: boolean;
+  alwaysNavigateToFallback?: boolean;
 }
 
-export function BackButton({ fallbackHref = '/customer/dashboard', showText = true }: BackButtonProps) {
+export function BackButton({
+  fallbackHref = '/customer/dashboard',
+  showText = true,
+  alwaysNavigateToFallback = false,
+}: BackButtonProps) {
   const router = useRouter();
 
   const handleClick = () => {
-    if (window.history.length > 1) {
+    if (!alwaysNavigateToFallback && window.history.length > 1) {
       router.back();
     } else {
       router.push(fallbackHref);
@@ -25,7 +30,7 @@ export function BackButton({ fallbackHref = '/customer/dashboard', showText = tr
       whileHover={{ x: -4 }}
       whileTap={{ scale: 0.95 }}
       onClick={handleClick}
-      className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition mb-6"
+      className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition mb-6 cursor-pointer"
     >
       <FiArrowLeft className="w-5 h-5" />
       {showText && <span className="font-medium">Back</span>}

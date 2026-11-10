@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from "react";
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { RootState } from '@/redux/store';
 import { toggleCart } from '@/redux/slices/cartSlice';
@@ -12,17 +13,31 @@ import {
   FiX,
   FiHeart,
   FiUser,
-} from 'react-icons/fi';
+  FiBell,
+  FiLayout,
+  FiSettings,
+  FiLogOut,
+  FiChevronDown,
+} from "react-icons/fi";
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppDispatch, useAppSelector } from '@/hooks/redux';
 import { FashionHubLogo } from '@/components/Reusable_Components/FashionHubLogo';
+import { getErrorMessage } from '@/lib/utils';
+import {
+  getAdminNotifications,
+  getMyNotifications,
+  markNotificationRead,
+  type NotificationRecord,
+} from '@/services/commerce.services';
 
+import { logout } from "@/redux/slices/features/auth/authSlice";
 export function Navbar() {
   const dispatch = useAppDispatch();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+const dropdownRef = useRef<HTMLDivElement>(null);
   const [searchproduct, setSearchproduct] = useState(
     searchParams.get('search') || ''
   );
@@ -30,11 +45,63 @@ export function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
+  const [notificationError, setNotificationError] = useState('');
   const isHomePage = pathname === '/';
   const isHomeAtTop = isHomePage && !scrolled;
   const cart = useAppSelector((state: RootState) => state.cart);
   const auth = useAppSelector((state: RootState) => state.auth);
   const wishlist = useAppSelector((state: RootState) => state.wishlist);
+  useEffect(() => {
+    if (!auth.isAuthenticated || !auth.user || (auth.user.role === 'customer' && auth.user.notificationsEnabled === false)) {
+      setNotifications([]);
+      setNotificationError('');
+      return;
+    }
+
+    let active = true;
+    const loadNotifications = () => {
+      const request = auth.user?.role === 'admin'
+        ? getAdminNotifications()
+        : getMyNotifications();
+      request
+        .then((data) => {
+          if (!active) return;
+          setNotifications(data);
+          setNotificationError('');
+        })
+        .catch((error: unknown) => {
+          if (active) setNotificationError(getErrorMessage(error, 'Unable to load notifications.'));
+        });
+    };
+    loadNotifications();
+    const intervalId = window.setInterval(loadNotifications, 30_000);
+    const handleFocus = () => loadNotifications();
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [auth.isAuthenticated, auth.user?.id, auth.user?.role, auth.user?.notificationsEnabled]);
+
+  const handleNotificationClick = async (notification: NotificationRecord) => {
+    try {
+      if (!notification.isRead) {
+        const updated = await markNotificationRead(notification._id);
+        setNotifications((current) => current.map((item) =>
+          item._id === updated._id ? updated : item,
+        ));
+      }
+      if (notification.orderId) {
+        setNotifOpen(false);
+        router.push('/customer/orders');
+      }
+    } catch (error) {
+      setNotificationError(getErrorMessage(error, 'Unable to mark notification as read.'));
+    }
+  };
   useEffect(() => {
     setSearchproduct(searchParams.get('search') || '');
   }, [searchParams]);
@@ -94,6 +161,10 @@ export function Navbar() {
     }
 
     setSearchOpen(false);
+  };
+   const handleLogout = () => {
+    dispatch(logout() as any);
+    setProfileDropdownOpen(false);
   };
   return (
     <nav
@@ -159,6 +230,13 @@ export function Navbar() {
               light={isHomeAtTop}
             >
               About
+            </NavLink>
+            <NavLink
+              href="/contact"
+              active={pathname?.startsWith('/contact')}
+              light={isHomeAtTop}
+            >
+              Contact
             </NavLink>
           </div>
 
@@ -275,28 +353,78 @@ export function Navbar() {
               ================================= */}
 
           <div className="flex items-center gap-1 sm:gap-2">
+            {/* Notifications */}
+            {isMounted && auth.isAuthenticated && auth.user?.notificationsEnabled !== false && (
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    const opening = !notifOpen;
+                    setNotifOpen(opening);
+                    if (opening && auth.user) {
+                      setNotificationError('');
+                      const request = auth.user.role === 'admin'
+                        ? getAdminNotifications()
+                        : getMyNotifications();
+                      request.then((records) => {
+                        setNotifications(records);
+                        setNotificationError('');
+                      }).catch((error: unknown) => {
+                        setNotificationError(getErrorMessage(error, 'Unable to load notifications.'));
+                      });
+                    }
+                  }}
+                  className={`
+        relative
+        flex items-center justify-center
+        w-10 h-10
+        rounded-lg
+        ${isHomeAtTop ? 'text-white' : 'text-foreground'}
+        hover:bg-accent
+        hover:text-primary
+        transition-colors cursor-pointer
+      `}
+                  title="Notifications"
+                >
+                  <FiBell className="w-4.75 h-4.75" />
+                  {notifications.some((notification) => !notification.isRead) && (
+                    <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />
+                  )}
+                </button>
 
-            {/* Desktop Search Icon */}
-            <button
-              onClick={() => handleSearch()}
-              className={`
-                hidden lg:flex
-                items-center justify-center
-                w-10 h-10
-                rounded-lg
-               ${isHomeAtTop ? 'text-white' : 'text-foreground'}
-                hover:bg-accent
-                hover:text-primary
-                transition-colors
-              `}
-              title="Search"
-            >
-              <FiSearch className="w-[19px] h-[19px]" />
-            </button>
-
+                {notifOpen && (
+                  <div className="absolute right-0 top-12 w-72 rounded-xl border border-border bg-card shadow-lg overflow-hidden z-50">
+                    <div className="p-4 border-b border-border">
+                      <p className="font-semibold text-sm text-foreground">Notifications</p>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto divide-y divide-border">
+                      {notificationError && (
+                        <p role="alert" className="p-3 text-xs text-destructive">{notificationError}</p>
+                      )}
+                      {notifications.length === 0 && !notificationError ? (
+                        <div className="p-8 text-center">
+                          <FiBell className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">No notifications yet</p>
+                        </div>
+                      ) : notifications.map((notification) => (
+                        <button
+                          key={notification._id}
+                          onClick={() => void handleNotificationClick(notification)}
+                          className={`block w-full p-3 text-left hover:bg-muted ${notification.isRead ? 'opacity-70' : ''}`}
+                        >
+                          <p className="text-sm text-foreground">{notification.message}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {new Date(notification.createdAt).toLocaleString()}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             {/* Wishlist */}
             <Link
-              href="/wishlist"
+              href="/customer/wishlist"
               className={`
                 relative
                 flex items-center justify-center
@@ -342,7 +470,7 @@ export function Navbar() {
                 ${isHomeAtTop ? 'text-white' : 'text-foreground'} 
                 hover:bg-accent
                 hover:text-primary
-                transition-colors
+                transition-colors cursor-pointer
               `}
               title="Shopping cart"
             >
@@ -369,31 +497,93 @@ export function Navbar() {
             </button>
 
             {/* Account */}
-            {isMounted && auth.isAuthenticated ? (
-              <Link
-                href={
-                  auth.user?.role === 'customer'
-                    ? '/customer/dashboard'
-                    : auth.user?.role === 'supplier'
-                      ? '/supplier/dashboard'
-                      : auth.user?.role === 'admin'
-                        ? '/admin/dashboard'
-                        : '/login'
-                }
-                className={`
-                  flex items-center justify-center
-                  w-10 h-10
-                  rounded-lg
-                  ${isHomeAtTop ? 'text-white' : 'text-foreground'}
-                  hover:bg-accent
-                  hover:text-primary
-                  transition-colors
-                `}
-                title="Account"
-              >
-                <FiUser className="w-[19px] h-[19px]" />
-              </Link>
-            ) : (
+           {isMounted && auth.isAuthenticated ? (
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  className={`
+                    flex items-center gap-2 p-1.5 rounded-lg
+                    ${isHomeAtTop ? "text-white" : "text-foreground"}
+                    hover:opacity-60 transition-colors
+                  `}
+                  title="Account menu"
+                >
+                  <div className="relative w-8 h-8 rounded-full overflow-hidden border border-primary/20 bg-primary/10 flex items-center justify-center font-bold text-primary text-xs">
+                    {auth.user?.avatar ? (
+                      <Image
+                        src={auth.user.avatar}
+                        alt={auth.user.fullName || "User Avatar"}
+                        fill
+                        className="object-cover"
+                        loading="eager"
+                      />
+                    ) : (
+                      auth.user?.fullName?.[0]?.toUpperCase() || (
+                        <FiUser className="w-4 h-4" />
+                      )
+                    )}
+                  </div>
+                  <motion.div
+                    animate={{ rotate: profileDropdownOpen ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <FiChevronDown className="w-4 h-4" />
+                  </motion.div>
+                </button>
+
+                <AnimatePresence>
+                  {profileDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="
+                        absolute right-0 mt-2 w-56
+                        rounded-xl bg-white shadow-xl
+                        border border-border py-2 z-50 overflow-hidden
+                      "
+                    >
+                      <div className="px-4 py-2.5 border-b border-border">
+                        <p className="text-sm font-bold text-foreground truncate">
+                          {auth.user?.fullName || auth.user?.email}
+                        </p>
+                      </div>
+
+                      {auth.user?.role === "customer" && (
+                        <div className="py-1">
+                          <Link
+                            href={"/customer/dashboard"}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+                          >
+                            <FiLayout className="w-4 h-4 text-muted-foreground" />
+                            Dashboard
+                          </Link>
+
+                          <Link
+                            href="/customer/settings"
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+                          >
+                            <FiSettings className="w-4 h-4 text-muted-foreground" />
+                            Profile and Settings
+                          </Link>
+                        </div>
+                      )}
+
+                      <div className="border-t border-border">
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-white bg-primary transition-colors text-left"
+                        >
+                          <FiLogOut className="w-4 h-4" />
+                          Log Out
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )  : (
               <Link
                 href="/login"
                 className="
@@ -488,6 +678,13 @@ export function Navbar() {
                   light={isHomeAtTop}
                 >
                   About
+                </MobileNavLink>
+                <MobileNavLink
+                  href="/contact"
+                  active={pathname?.startsWith('/contact')}
+                  light={isHomeAtTop}
+                >
+                  Contact
                 </MobileNavLink>
 
                 {/* Mobile Search */}

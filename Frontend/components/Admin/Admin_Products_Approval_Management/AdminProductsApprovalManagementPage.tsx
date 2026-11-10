@@ -1,22 +1,21 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useSelector } from 'react-redux';
+import { useAppSelector } from '@/hooks/redux';
 import { RootState } from '@/redux/store';
 import { useRouter } from 'next/navigation';
-import { FiSearch, FiCheckCircle, FiXCircle, FiEye, FiTrash2 } from 'react-icons/fi';
+import { FiSearch, FiEye, FiTrash2 } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
-import { ProductApprovalModal } from '@/components/modals/ProductApprovalModal';
 import { BackButton } from '@/components/Reusable_Components/BackButton';
+import { deleteProduct, getAllProductsForManagement, type BackendProduct } from '@/services/management.services';
+import { formatPrice } from '@/lib/utils';
 
 interface Product {
-  id: number;
+  id: string;
   name: string;
   supplier: string;
   price: number;
-  status: 'approved' | 'pending' | 'rejected';
   category: string;
-  sales: number;
 }
 
 const containerVariants = {
@@ -29,30 +28,38 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-const mockProducts: Product[] = [
-  { id: 1, name: 'Premium Leather Jacket', supplier: 'Premium Fashion Co.', price: 299.99, status: 'approved', category: 'Jackets', sales: 45 },
-  { id: 2, name: 'Summer Dress', supplier: 'Style Hub', price: 89.99, status: 'pending', category: 'Dresses', sales: 0 },
-  { id: 3, name: 'Running Shoes', supplier: 'Classic Wear', price: 149.99, status: 'approved', category: 'Shoes', sales: 128 },
-  { id: 4, name: 'Wool Sweater', supplier: 'Trend Masters', price: 59.99, status: 'approved', category: 'Sweaters', sales: 87 },
-  { id: 5, name: 'Casual Shirt', supplier: 'Premium Fashion Co.', price: 49.99, status: 'rejected', category: 'Shirts', sales: 0 },
-];
-
 export default function AdminProductsApprovalManagementPage() {
   const router = useRouter();
-  const auth = useSelector((state: RootState) => state.auth);
+  const auth = useAppSelector((state: RootState) => state.auth);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'approved' | 'pending' | 'rejected'>('all');
-  const [products, setProducts] = useState<Product[]>(mockProducts);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [action, setAction] = useState<'approve' | 'reject' | null>(null);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [requestError, setRequestError] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!auth.isAuthenticated || auth.user?.role !== 'admin') {
       router.push('/login');
     } else {
       setIsAuthorized(true);
+      let active = true;
+      getAllProductsForManagement()
+        .then((data: BackendProduct[]) => {
+          if (active) setProducts(data.map((product) => ({
+            id: product._id,
+            name: product.name,
+            supplier: typeof product.supplier === 'string'
+              ? product.supplier
+              : product.supplier?.name ?? product.supplier?.fullName ?? product.supplier?.email ?? 'Supplier',
+            price: product.price,
+            category: product.category,
+          })));
+        })
+        .catch((error: unknown) => {
+          if (active) setRequestError(error instanceof Error ? error.message : 'Unable to load products.');
+        });
+      return () => { active = false; };
     }
   }, [auth.isAuthenticated, auth.user?.role, router]);
 
@@ -60,40 +67,23 @@ export default function AdminProductsApprovalManagementPage() {
     return null;
   }
 
-  const filteredProducts = products.filter(
-    (product) =>
-      (filterStatus === 'all' || product.status === filterStatus) &&
-      (product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.supplier.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredProducts = products.filter((product) =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.supplier.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAction = (product: Product, actionType: 'approve' | 'reject') => {
-    setSelectedProduct(product);
-    setAction(actionType);
-  };
-
-  const handleConfirmAction = () => {
-    if (!selectedProduct || !action) return;
-
-    const updatedProducts = products.map(p => {
-      if (p.id === selectedProduct.id) {
-        if (action === 'approve') {
-          return { ...p, status: 'approved' as const };
-        } else if (action === 'reject') {
-          return { ...p, status: 'rejected' as const };
-        }
-      }
-      return p;
-    });
-
-    setProducts(updatedProducts);
-    setSelectedProduct(null);
-    setAction(null);
-  };
-
-  const handleDelete = (id: number) => {
-    setProducts(products.filter(p => p.id !== id));
-    setDeletingId(null);
+  const handleDelete = async (id: string) => {
+    setIsDeleting(true);
+    setRequestError('');
+    try {
+      await deleteProduct(id);
+      setProducts((current) => current.filter((product) => product.id !== id));
+      setDeletingId(null);
+    } catch (error) {
+      setRequestError(error instanceof Error ? error.message : 'Unable to delete product.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -107,8 +97,10 @@ export default function AdminProductsApprovalManagementPage() {
         >
           <BackButton fallbackHref="/admin/dashboard" />
           <h1 className="text-4xl font-bold mb-2">Product Management</h1>
-          <p className="text-muted-foreground">Review and approve products</p>
+          <p className="text-muted-foreground">View and manage listed products</p>
         </motion.div>
+
+        {requestError && <p role="alert" className="mb-6 text-sm text-destructive">{requestError}</p>}
 
         {/* Search & Filter */}
         <motion.div
@@ -126,20 +118,6 @@ export default function AdminProductsApprovalManagementPage() {
               className="w-full pl-10 pr-4 py-3 bg-card border border-border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
             />
           </div>
-          <div className="flex gap-2 overflow-x-auto">
-            {['all', 'approved', 'pending', 'rejected'].map((status) => (
-              <button
-                key={status}
-                onClick={() => setFilterStatus(status as any)}
-                className={`px-4 py-2 rounded-lg font-medium text-sm flex-shrink-0 transition ${filterStatus === status
-                    ? 'bg-primary text-white'
-                    : 'bg-secondary hover:bg-border'
-                  }`}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </button>
-            ))}
-          </div>
         </motion.div>
 
         {/* Products Table */}
@@ -156,7 +134,7 @@ export default function AdminProductsApprovalManagementPage() {
                   <th className="px-6 py-4 text-left text-sm font-semibold">Product Name</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Supplier</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Price</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Sales</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold">Category</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Status</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Actions</th>
                 </tr>
@@ -170,53 +148,20 @@ export default function AdminProductsApprovalManagementPage() {
                   >
                     <td className="px-6 py-4 font-medium">{product.name}</td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">{product.supplier}</td>
-                    <td className="px-6 py-4 font-semibold">${product.price.toFixed(2)}</td>
-                    <td className="px-6 py-4 text-sm">{product.sales}</td>
+                    <td className="px-6 py-4 font-semibold">{formatPrice(product.price)}</td>
+                    <td className="px-6 py-4 text-sm">{product.category}</td>
                     <td className="px-6 py-4 text-sm">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 w-fit ${product.status === 'approved'
-                            ? 'bg-green-100 text-green-800'
-                            : product.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}
-                      >
-                        {product.status === 'approved' ? (
-                          <FiCheckCircle className="w-3 h-3" />
-                        ) : product.status === 'rejected' ? (
-                          <FiXCircle className="w-3 h-3" />
-                        ) : null}
-                        {product.status}
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                        Listed
                       </span>
                     </td>
                     <td className="px-6 py-4 flex gap-2">
-                      <button className="text-primary hover:text-accent transition p-2">
+                      <button onClick={() => router.push(`/product/${product.id}`)} className="text-primary hover:text-accent transition p-2" aria-label={`View ${product.name}`}>
                         <FiEye className="w-4 h-4" />
                       </button>
-                      {product.status === 'pending' && (
-                        <>
-                          <button
-                            onClick={() => handleAction(product, 'approve')}
-                            className="text-green-600 hover:text-green-700 font-medium text-sm transition"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => handleAction(product, 'reject')}
-                            className="text-destructive hover:text-destructive/80 font-medium text-sm transition"
-                          >
-                            Reject
-                          </button>
-                        </>
-                      )}
-                      {product.status === 'approved' && (
-                        <button
-                          onClick={() => setDeletingId(product.id)}
-                          className="text-destructive hover:text-destructive/80 transition"
-                        >
-                          <FiTrash2 className="w-4 h-4" />
-                        </button>
-                      )}
+                      <button onClick={() => setDeletingId(product.id)} className="text-destructive hover:text-destructive/80 transition" aria-label={`Delete ${product.name}`}>
+                        <FiTrash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </motion.tr>
                 ))}
@@ -224,15 +169,6 @@ export default function AdminProductsApprovalManagementPage() {
             </table>
           </div>
         </motion.div>
-
-        {/* Product Approval Modal */}
-        <ProductApprovalModal
-          isOpen={action !== null}
-          product={selectedProduct}
-          action={action}
-          onClose={() => { setAction(null); setSelectedProduct(null); }}
-          onConfirm={handleConfirmAction}
-        />
 
         {/* Delete Confirmation */}
         {deletingId && (
@@ -254,10 +190,11 @@ export default function AdminProductsApprovalManagementPage() {
                   Cancel
                 </button>
                 <button
-                  onClick={() => deletingId && handleDelete(deletingId)}
+                  onClick={() => deletingId && void handleDelete(deletingId)}
+                  disabled={isDeleting}
                   className="flex-1 px-4 py-2 bg-destructive text-white rounded-lg hover:opacity-90 transition"
                 >
-                  Delete
+                  {isDeleting ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
             </motion.div>

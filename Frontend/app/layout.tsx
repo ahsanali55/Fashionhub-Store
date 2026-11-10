@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { Manrope } from "next/font/google";
 import { ClientLayout } from './client-layout'
-import { GlobalProgressBar } from '@/components/Reusable_Components/GlobalProgressBar'
 import './globals.css'
 import AuthProvider, { ReduxProvider } from './redux-provider'
 
@@ -27,7 +26,6 @@ export default function RootLayout({
   return (
     <html lang="en" className="bg-background">
       <body className={`${manrope.variable} font-sans antialiased`}>
-        {/* <GlobalProgressBar /> */}
         <ReduxProvider>
           <AuthProvider>
             <ClientLayout>{children}</ClientLayout>

@@ -27,8 +27,7 @@ export const generateAccessToken = (userId: string, role: string): string => {
     },
     process.env.JWT_SECRET,
     {
-      // Casting as 'any' or 'never' safely bypasses the strict SignOptions string union type check
-      expiresIn: (process.env.ACCESS_TOKEN_EXPIRES || "1h") as any,
+      expiresIn: (process.env.ACCESS_TOKEN_EXPIRES_IN || "1h") as SignOptions["expiresIn"],
     }
   );
 };

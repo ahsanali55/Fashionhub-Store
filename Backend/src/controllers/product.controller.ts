@@ -1,27 +1,34 @@
 import { Request, Response } from "express";
 import { Product } from "../models/product.model";
+import cloudinary from "../config/cloudinary";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
-import cloudinary from "../config/cloudinary";
-import streamifier from "streamifier";
 import { Category } from "../models/category.model";
+import { uploadImage } from "../utils/uploadImage";
 
-// Helper to upload buffer to Cloudinary
-const uploadToCloudinary = (fileBuffer: Buffer): Promise<any> => {
-  return new Promise((resolve, reject) => {
-    let stream = cloudinary.uploader.upload_stream(
-      { folder: "fashionhub/products" },
-      (error, result) => {
-        if (result) {
-          resolve(result);
-        } else {
-          reject(error);
-        }
-      },
-    );
-    streamifier.createReadStream(fileBuffer).pipe(stream);
-  });
+const parseProductFields = (body: Request["body"]) => {
+  const name = typeof body.name === "string" ? body.name.trim() : "";
+  const description = typeof body.description === "string" ? body.description.trim() : "";
+  const category = typeof body.category === "string" ? body.category.trim() : "";
+  const price = Number(body.price);
+  const stock = Number(body.stock);
+
+  if (name.length < 2 || name.length > 120) {
+    throw new ApiError(400, "Product name must be between 2 and 120 characters.");
+  }
+  if (description.length < 5 || description.length > 5000) {
+    throw new ApiError(400, "Product description must be between 5 and 5000 characters.");
+  }
+  if (!Number.isFinite(price) || price < 0.01 || price > 1000000000) {
+    throw new ApiError(400, "Enter a valid product price greater than zero.");
+  }
+  if (!Number.isInteger(stock) || stock < 0) {
+    throw new ApiError(400, "Stock must be a non-negative whole number.");
+  }
+  if (!category) throw new ApiError(400, "Choose a product category.");
+
+  return { name, description, category, price, stock };
 };
 // Helper to extract Cloudinary public ID and delete old image
 const deleteFromCloudinary = async (imageUrl: string) => {
@@ -64,8 +71,6 @@ export const getProductById = asyncHandler(
 
 export const createProduct = asyncHandler(
   async (req: Request, res: Response) => {
-    console.log("Create Product request ", req);
-    
     if (req.user?.role === "supplier" && req.user?.status === "rejected") {
       throw new ApiError(
         403,
@@ -80,32 +85,31 @@ export const createProduct = asyncHandler(
       );
     } 
 
-    const { name, description, price, category, stock } = req.body;
+    const fields = parseProductFields(req.body);
 
     // 🔍 Validate that the category exists in the Admin's category list
-    const validCategory = await Category.findOne({ name: category });
+    const validCategory = await Category.findOne({ name: fields.category });
     if (!validCategory) {
-      throw new ApiError(
-        400, 
-        `Invalid category "${category}". Please choose a category provided by the admin.`
-      );
+      throw new ApiError(400, "Choose a category provided by the admin.");
     }
 
-    if (!req.file) {
+    if (!req.file?.buffer) {
       throw new ApiError(400, "Product image is required");
     }
 
-    const cloudinaryResponse = await uploadToCloudinary(req.file.buffer);
+    const image = await uploadImage(req.file.buffer, "fashionhub/products");
 
-    const product = await Product.create({
-      name,
-      description,
-      price,
-      category,
-      stock,
-      image: cloudinaryResponse.secure_url,
-      supplier: req.user?._id,
-    });
+    let product;
+    try {
+      product = await Product.create({
+        ...fields,
+        image,
+        supplier: req.user?._id,
+      });
+    } catch (error) {
+      await deleteFromCloudinary(image);
+      throw error;
+    }
 
     return res
       .status(201)
@@ -115,9 +119,7 @@ export const createProduct = asyncHandler(
 
 export const updateProduct = asyncHandler(
   async (req: Request, res: Response) => {
-    console.log("Update Product request ", req.body);
     const product = await Product.findById(req.params.id);
-    console.log("Req Params ", req.params.id);
 
     if (!product) {
       throw new ApiError(404, "Product not found");
@@ -128,30 +130,32 @@ export const updateProduct = asyncHandler(
       throw new ApiError(403, "Unauthorized to update this product");
     }
 
-    let imageUrl = product.image;
+    const fields = parseProductFields(req.body);
+    const validCategory = await Category.findOne({ name: fields.category });
+    if (!validCategory) throw new ApiError(400, "Choose a category provided by the admin.");
 
-    if (req.file) {
-      // 1. Upload new image to Cloudinary
-      const cloudinaryResponse = await uploadToCloudinary(req.file.buffer);
-
-      // 2. Delete the old image from Cloudinary if it exists
-      if (product.image) {
-        await deleteFromCloudinary(product.image);
-      }
-
-      // 3. Assign new image URL
-      imageUrl = cloudinaryResponse.secure_url;
+    const imageUrl = req.file?.buffer
+      ? await uploadImage(req.file.buffer, "fashionhub/products")
+      : product.image;
+    let updatedProduct;
+    try {
+      updatedProduct = await Product.findByIdAndUpdate(
+        req.params.id,
+        {
+          ...fields,
+          image: imageUrl,
+        },
+        { new: true, runValidators: true },
+      );
+    } catch (error) {
+      if (req.file?.buffer) await deleteFromCloudinary(imageUrl);
+      throw error;
     }
-
-    // Update the product with new data and the new image URL into the database
-    const updatedProduct = await Product.findByIdAndUpdate(
-      req.params.id,
-      {
-        ...req.body,
-        image: imageUrl,
-      },
-      { new: true, runValidators: true },
-    );
+    if (!updatedProduct) {
+      if (req.file?.buffer) await deleteFromCloudinary(imageUrl);
+      throw new ApiError(404, "Product not found");
+    }
+    if (req.file?.buffer && product.image) await deleteFromCloudinary(product.image);
 
     return res
       .status(200)
@@ -161,8 +165,6 @@ export const updateProduct = asyncHandler(
 
 export const deleteProduct = asyncHandler(
   async (req: Request, res: Response) => {
-    console.log("Delete Product request ", req.body);
-
     const product = await Product.findById(req.params.id);
 
     if (!product) {

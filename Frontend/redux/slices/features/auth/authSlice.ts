@@ -17,6 +17,8 @@ interface RegisterPayload {
   fullName: string;
   email: string;
   password: string;
+  recoveryQuestion: string;
+  recoveryAnswer: string;
   role: "customer" | "supplier";
 }
 
@@ -65,7 +67,6 @@ export const fetchCurrentUser = createAsyncThunk<
 >("auth/fetchCurrentUser", async (_, { rejectWithValue }) => {
   try {
     const response = await getCurrentUser();
-    console.log("getCurrentUser response: ", response.data);
     return response.data.user;
   } catch (error: any) {
     return rejectWithValue(
@@ -91,6 +92,7 @@ const initialState: AuthState = {
   isAuthenticated: false,
   isLoading: false,
   error: null,
+  avatarPreview: null,
 };
 
 const authSlice = createSlice({
@@ -105,6 +107,9 @@ const authSlice = createSlice({
     setUser: (state, action: PayloadAction<AuthUser>) => {
       state.user = action.payload;
       state.isAuthenticated = true;
+    },
+    setAvatarPreview: (state, action: PayloadAction<string | null>) => {
+      state.avatarPreview = action.payload;
     },
   },
 
@@ -197,7 +202,7 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearAuthError, setUser } = authSlice.actions;
+export const { clearAuthError, setUser,setAvatarPreview  } = authSlice.actions;
 
 export default authSlice.reducer;
 

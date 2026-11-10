@@ -6,6 +6,10 @@ import { useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
 import { FiArrowLeft, FiCheck } from 'react-icons/fi';
+import { useAppDispatch } from '@/hooks/redux';
+import { clearCart } from '@/redux/slices/cartSlice';
+import { createOrder, removeCartItem } from '@/services/commerce.services';
+import { formatPrice } from '@/lib/utils';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -20,29 +24,25 @@ const itemVariants = {
 export default function CheckoutPage() {
   const router = useRouter();
   const cart = useSelector((state: RootState) => state.cart);
+  const auth = useSelector((state: RootState) => state.auth);
+  const dispatch = useAppDispatch();
   const [formData, setFormData] = useState({
-    email: '',
-    fullName: '',
     address: '',
     city: '',
-    state: '',
     zipCode: '',
-    cardNumber: '',
-    expiryDate: '',
-    cvv: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
+  const [orderId, setOrderId] = useState('');
+  const [placedOrderTotal, setPlacedOrderTotal] = useState(0);
+  const [submissionError, setSubmissionError] = useState('');
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    if (!formData.email.includes('@')) newErrors.email = 'Valid email is required';
-    if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
     if (!formData.address.trim()) newErrors.address = 'Address is required';
     if (!formData.city.trim()) newErrors.city = 'City is required';
     if (!formData.zipCode.trim()) newErrors.zipCode = 'ZIP code is required';
-    if (formData.cardNumber.replace(/\s/g, '').length !== 16) newErrors.cardNumber = 'Valid card number is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -50,18 +50,51 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
+    if (!auth.isAuthenticated || auth.user?.role !== 'customer') {
+      router.push('/login');
+      return;
+    }
+    if (cart.items.length === 0) {
+      setSubmissionError('Your cart is empty.');
+      return;
+    }
 
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setOrderComplete(true);
-    setIsSubmitting(false);
+    setSubmissionError('');
+    try {
+      const order = await createOrder({
+        items: cart.items.map((item) => ({
+          productId: item.id,
+          quantity: item.quantity,
+        })),
+        shippingAddress: {
+          fullName: auth.user.fullName,
+          address: formData.address,
+          city: formData.city,
+          postalCode: formData.zipCode,
+        },
+        paymentMethod: 'Cash on Delivery',
+      });
+      setOrderId(order._id);
+      setPlacedOrderTotal(order.total);
+      const cleanup = await Promise.allSettled(
+        cart.items.map((item) => removeCartItem(item.id)),
+      );
+      if (cleanup.some((result) => result.status === 'rejected')) {
+        setSubmissionError('Order placed, but the saved cart could not be fully cleared.');
+      }
+      dispatch(clearCart());
+      setOrderComplete(true);
+    } catch (error) {
+      setSubmissionError(
+        error instanceof Error ? error.message : 'Unable to place your order.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const subtotal = cart.items.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
-  const shipping = subtotal > 100 ? 0 : 10;
-  const tax = subtotal * 0.08;
-  const total = subtotal + shipping + tax;
-
   if (orderComplete) {
     return (
       <main className="bg-background min-h-screen py-12">
@@ -80,12 +113,13 @@ export default function CheckoutPage() {
             </motion.div>
             <h1 className="text-4xl font-bold">Order Placed Successfully!</h1>
             <p className="text-muted-foreground">Thank you for your purchase. Your order has been confirmed and will be shipped soon.</p>
+            {submissionError && <p className="text-amber-700">{submissionError}</p>}
             <div className="space-y-2 text-sm">
               <p>
-                <strong>Order Number:</strong> #ORD-{Math.floor(Math.random() * 1000000)}
+                <strong>Order Number:</strong> #{orderId}
               </p>
               <p>
-                <strong>Total Amount:</strong> ${total.toFixed(2)}
+                <strong>Total Amount:</strong> {formatPrice(placedOrderTotal)}
               </p>
             </div>
             <button
@@ -131,32 +165,20 @@ export default function CheckoutPage() {
               {/* Shipping Info */}
               <motion.div variants={itemVariants}>
                 <h2 className="text-xl font-bold mb-4">Shipping Information</h2>
+                {cart.items.length === 0 && (
+                  <p role="alert" className="mb-4 text-sm text-destructive">
+                    Your cart is empty. Add products before checking out.
+                  </p>
+                )}
                 <div className="space-y-4">
-                  <input
-                    type="email"
-                    placeholder="Email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className={`w-full px-4 py-3 bg-secondary border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none transition ${
-                      errors.email ? 'border-destructive' : 'border-border'
-                    }`}
-                  />
-                  {errors.email && <p className="text-destructive text-sm">{errors.email}</p>}
-
-                  <input
-                    type="text"
-                    placeholder="Full Name"
-                    value={formData.fullName}
-                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                    className={`w-full px-4 py-3 bg-secondary border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none transition ${
-                      errors.fullName ? 'border-destructive' : 'border-border'
-                    }`}
-                  />
-                  {errors.fullName && <p className="text-destructive text-sm">{errors.fullName}</p>}
+                  <p className="text-sm text-muted-foreground">
+                    Delivering to {auth.user?.fullName} ({auth.user?.email})
+                  </p>
 
                   <input
                     type="text"
                     placeholder="Address"
+                    autoComplete="street-address"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     className={`w-full px-4 py-3 bg-secondary border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none transition ${
@@ -169,6 +191,7 @@ export default function CheckoutPage() {
                     <input
                       type="text"
                       placeholder="City"
+                      autoComplete="address-level2"
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                       className={`px-4 py-3 bg-secondary border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none transition ${
@@ -178,6 +201,7 @@ export default function CheckoutPage() {
                     <input
                       type="text"
                       placeholder="ZIP Code"
+                      autoComplete="postal-code"
                       value={formData.zipCode}
                       onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
                       className={`px-4 py-3 bg-secondary border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none transition ${
@@ -191,41 +215,15 @@ export default function CheckoutPage() {
               {/* Payment Info */}
               <motion.div variants={itemVariants}>
                 <h2 className="text-xl font-bold mb-4">Payment Information</h2>
-                <div className="space-y-4">
-                  <input
-                    type="text"
-                    placeholder="Card Number"
-                    value={formData.cardNumber}
-                    onChange={(e) => setFormData({ ...formData, cardNumber: e.target.value })}
-                    className={`w-full px-4 py-3 bg-secondary border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none transition ${
-                      errors.cardNumber ? 'border-destructive' : 'border-border'
-                    }`}
-                  />
-                  {errors.cardNumber && <p className="text-destructive text-sm">{errors.cardNumber}</p>}
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <input
-                      type="text"
-                      placeholder="MM/YY"
-                      value={formData.expiryDate}
-                      onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                      className="px-4 py-3 bg-secondary border border-border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none transition"
-                    />
-                    <input
-                      type="text"
-                      placeholder="CVV"
-                      value={formData.cvv}
-                      onChange={(e) => setFormData({ ...formData, cvv: e.target.value })}
-                      className="px-4 py-3 bg-secondary border border-border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none transition"
-                    />
-                  </div>
-                </div>
+                <p className="text-sm text-muted-foreground">
+                  Cash on delivery is available for this order.
+                </p>
               </motion.div>
 
               <motion.button
                 variants={itemVariants}
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || cart.items.length === 0}
                 className="w-full px-6 py-3 bg-primary text-white rounded-lg hover:opacity-90 transition font-bold disabled:opacity-50"
               >
                 {isSubmitting ? 'Processing...' : 'Place Order'}
@@ -243,7 +241,7 @@ export default function CheckoutPage() {
               {cart.items.map((item) => (
                 <div key={item.id} className="flex justify-between text-sm">
                   <span>{item.name}</span>
-                  <span className="font-medium">${(item.price * (item.quantity || 1)).toFixed(2)}</span>
+                  <span className="font-medium">{formatPrice(item.price * (item.quantity || 1))}</span>
                 </div>
               ))}
             </div>
@@ -251,24 +249,14 @@ export default function CheckoutPage() {
             <div className="space-y-2 text-sm mb-6">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Shipping</span>
-                <span className={shipping === 0 ? 'text-green-600 font-semibold' : ''}>
-                  {shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Tax</span>
-                <span>${tax.toFixed(2)}</span>
+                <span>{formatPrice(subtotal)}</span>
               </div>
             </div>
 
             <div className="border-t border-border pt-4">
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span>
-                <span>${total.toFixed(2)}</span>
+                <span>{formatPrice(subtotal)}</span>
               </div>
             </div>
           </motion.div>
