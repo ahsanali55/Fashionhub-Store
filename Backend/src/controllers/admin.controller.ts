@@ -111,6 +111,16 @@ export const suspendOrActivateUser = asyncHandler(async (req: Request, res: Resp
     throw new ApiError(404, "User not found");
   }
 
+  if (user.role === "supplier") {
+    await createNotification(
+      user._id.toString(),
+      isActive
+        ? "Your supplier account has been reactivated. Your eligible products are available in the marketplace again."
+        : "Your supplier account has been suspended. You can no longer list products or sell existing listings.",
+      isActive ? "SUPPLIER_REACTIVATED" : "SUPPLIER_SUSPENDED",
+    );
+  }
+
   return res.status(200).json(
     new ApiResponse(`User account has been ${isActive ? "activated" : "suspended"} successfully`, user)
   );

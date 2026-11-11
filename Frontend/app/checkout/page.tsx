@@ -5,9 +5,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
-import { FiArrowLeft, FiCheck } from 'react-icons/fi';
+import { FiArrowLeft, FiArrowRight, FiCheck, FiPackage, FiShoppingBag } from 'react-icons/fi';
 import { useAppDispatch } from '@/hooks/redux';
 import { clearCart } from '@/redux/slices/cartSlice';
+import { loadProducts } from '@/redux/slices/productsSlice';
 import { createOrder, removeCartItem } from '@/services/commerce.services';
 import { formatPrice } from '@/lib/utils';
 
@@ -37,6 +38,7 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState('');
   const [placedOrderTotal, setPlacedOrderTotal] = useState(0);
   const [submissionError, setSubmissionError] = useState('');
+  const [inventoryRefreshWarning, setInventoryRefreshWarning] = useState('');
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -77,14 +79,13 @@ export default function CheckoutPage() {
       });
       setOrderId(order._id);
       setPlacedOrderTotal(order.total);
-      const cleanup = await Promise.allSettled(
-        cart.items.map((item) => removeCartItem(item.id)),
-      );
-      if (cleanup.some((result) => result.status === 'rejected')) {
-        setSubmissionError('Order placed, but the saved cart could not be fully cleared.');
-      }
+      await Promise.allSettled(cart.items.map((item) => removeCartItem(item.id)));
       dispatch(clearCart());
       setOrderComplete(true);
+      const refreshResult = await dispatch(loadProducts());
+      if (loadProducts.rejected.match(refreshResult)) {
+        setInventoryRefreshWarning('Your order is confirmed, but inventory could not refresh. Reload the shop to see the latest stock.');
+      }
     } catch (error) {
       setSubmissionError(
         error instanceof Error ? error.message : 'Unable to place your order.',
@@ -97,38 +98,86 @@ export default function CheckoutPage() {
   const subtotal = cart.items.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
   if (orderComplete) {
     return (
-      <main className="bg-background min-h-screen py-12">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="relative min-h-screen overflow-hidden bg-background px-4 pb-12 pt-28 sm:px-6 sm:pb-16 sm:pt-32 lg:px-8">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-primary/10 to-transparent" />
+        <div className="relative mx-auto max-w-3xl">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-card rounded-lg shadow-sm p-12 text-center space-y-6"
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
           >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto"
-            >
-              <FiCheck className="w-8 h-8" />
-            </motion.div>
-            <h1 className="text-4xl font-bold">Order Placed Successfully!</h1>
-            <p className="text-muted-foreground">Thank you for your purchase. Your order has been confirmed and will be shipped soon.</p>
-            {submissionError && <p className="text-amber-700">{submissionError}</p>}
-            <div className="space-y-2 text-sm">
-              <p>
-                <strong>Order Number:</strong> #{orderId}
+            <div className="px-6 pb-8 pt-10 text-center sm:px-12 sm:pt-12">
+              <motion.div
+                initial={{ scale: 0.75, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 0.1 }}
+                className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-green-700 ring-8 ring-green-50"
+              >
+                <FiCheck className="h-9 w-9" strokeWidth={2.5} />
+              </motion.div>
+              <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-primary">FashionHub order update</p>
+              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Your order is confirmed</h1>
+              <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-muted-foreground sm:text-base">
+                Thanks for shopping with us. You can follow the order status anytime from your customer dashboard.
               </p>
-              <p>
-                <strong>Total Amount:</strong> {formatPrice(placedOrderTotal)}
-              </p>
+              <div className="mx-auto mt-7 inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-3 py-1.5 text-sm font-semibold text-green-800">
+                <span className="h-2 w-2 rounded-full bg-green-600" />
+                Order placed
+              </div>
             </div>
-            <button
-              onClick={() => router.push('/')}
-              className="px-6 py-3 bg-primary text-white rounded-lg hover:opacity-90 transition font-medium"
-            >
-              Continue Shopping
-            </button>
+
+            <div className="mx-6 grid gap-3 border-y border-border py-5 sm:mx-12 sm:grid-cols-2 sm:gap-4">
+              <div className="rounded-xl border border-border bg-background p-4 text-left">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Order number</p>
+                <p className="mt-2 break-all font-mono text-sm font-semibold">#{orderId}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-background p-4 text-left">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total to pay</p>
+                <p className="mt-2 text-xl font-bold">{formatPrice(placedOrderTotal)}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">Cash on delivery</p>
+              </div>
+            </div>
+
+            <div className="mx-6 my-5 flex gap-3 rounded-xl bg-secondary/60 p-4 text-left sm:mx-12">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-card text-primary">
+                <FiPackage className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold">What happens next?</p>
+                <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                  Your order is pending confirmation. Check My Orders for fulfillment updates.
+                </p>
+              </div>
+            </div>
+
+            {inventoryRefreshWarning && (
+              <div className="mx-6 mb-5 sm:mx-12">
+                <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-left text-sm text-amber-800">{inventoryRefreshWarning}</p>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-3 px-6 pb-8 sm:flex-row sm:justify-center sm:px-12">
+              <button
+                onClick={() => router.push('/customer/orders')}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground transition hover:opacity-90"
+              >
+                <FiPackage className="h-4 w-4" />
+                View my orders
+                <FiArrowRight className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => router.push('/shop')}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-6 py-3 font-semibold transition hover:bg-secondary"
+              >
+                <FiShoppingBag className="h-4 w-4" />
+                Continue shopping
+              </button>
+            </div>
           </motion.div>
+          <p className="mt-5 text-center text-xs text-muted-foreground">
+            Need help with this order? You can find its details in your order history.
+          </p>
         </div>
       </main>
     );

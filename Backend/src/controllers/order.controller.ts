@@ -5,6 +5,7 @@ import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
 import { createNotification } from "../utils/notificationHelper";
 import { Product } from "../models/product.model";
+import { getActiveApprovedSupplierIds } from "../utils/supplierAvailability";
 
 // 1. Create a new order (Checkout)
 export const createOrder = asyncHandler(async (req: Request, res: Response) => {
@@ -47,9 +48,11 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
     quantities.set(productId, quantity);
   }
 
+  const activeSupplierIds = await getActiveApprovedSupplierIds();
   const products = await Product.find({
     _id: { $in: Array.from(quantities.keys()) },
     isVisible: { $ne: false },
+    supplier: { $in: activeSupplierIds },
   });
   if (products.length !== quantities.size) {
     throw new ApiError(400, "One or more products are no longer available");
@@ -72,7 +75,12 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
   try {
     for (const item of orderItems) {
       const reservation = await Product.findOneAndUpdate(
-        { _id: item.productId, isVisible: { $ne: false }, stock: { $gte: item.quantity } },
+        {
+          _id: item.productId,
+          isVisible: { $ne: false },
+          supplier: { $in: activeSupplierIds },
+          stock: { $gte: item.quantity },
+        },
         { $inc: { stock: -item.quantity } },
         { new: true },
       );

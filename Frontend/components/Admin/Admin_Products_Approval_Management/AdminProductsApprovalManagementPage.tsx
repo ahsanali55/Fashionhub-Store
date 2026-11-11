@@ -4,15 +4,21 @@ import { motion } from 'framer-motion';
 import { useAppSelector } from '@/hooks/redux';
 import { RootState } from '@/redux/store';
 import { useRouter } from 'next/navigation';
-import { FiSearch, FiEye, FiTrash2 } from 'react-icons/fi';
+import { FiSearch, FiEye, FiTrash2, FiPlus } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
 import { BackButton } from '@/components/Reusable_Components/BackButton';
 import {
   deleteProduct,
+  createCategory,
+  getCategories,
   getAllProductsForManagement,
+  getUsers,
+  importSampleCatalog,
   setProductVisibility,
+  type AdminUser,
   type BackendProduct,
 } from '@/services/management.services';
+import { sampleCatalog } from '@/services/sampleCatalog';
 import { formatPrice, getErrorMessage } from '@/lib/utils';
 
 interface Product {
@@ -23,6 +29,17 @@ interface Product {
   category: string;
   isVisible: boolean;
 }
+
+const toAdminProduct = (product: BackendProduct): Product => ({
+  id: product._id,
+  name: product.name,
+  supplier: typeof product.supplier === 'string'
+    ? product.supplier
+    : product.supplier?.name ?? product.supplier?.fullName ?? product.supplier?.email ?? 'Supplier',
+  price: product.price,
+  category: product.category,
+  isVisible: product.isVisible ?? true,
+});
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -44,6 +61,13 @@ export default function AdminProductsApprovalManagementPage() {
   const [requestError, setRequestError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [updatingVisibilityId, setUpdatingVisibilityId] = useState<string | null>(null);
+  const [isCreatingCategories, setIsCreatingCategories] = useState(false);
+  const [categoryMessage, setCategoryMessage] = useState('');
+  const [approvedSuppliers, setApprovedSuppliers] = useState<AdminUser[]>([]);
+  const [defaultSupplierId, setDefaultSupplierId] = useState('');
+  const [supplierAssignments, setSupplierAssignments] = useState<Record<string, string>>({});
+  const [isImportingSample, setIsImportingSample] = useState(false);
+  const [importMessage, setImportMessage] = useState('');
 
   useEffect(() => {
     if (!auth.isAuthenticated || auth.user?.role !== 'admin') {
@@ -53,19 +77,22 @@ export default function AdminProductsApprovalManagementPage() {
       let active = true;
       getAllProductsForManagement()
         .then((data: BackendProduct[]) => {
-          if (active) setProducts(data.map((product) => ({
-            id: product._id,
-            name: product.name,
-            supplier: typeof product.supplier === 'string'
-              ? product.supplier
-              : product.supplier?.name ?? product.supplier?.fullName ?? product.supplier?.email ?? 'Supplier',
-            price: product.price,
-            category: product.category,
-            isVisible: product.isVisible ?? true,
-          })));
+          if (active) setProducts(data.map(toAdminProduct));
         })
         .catch((error: unknown) => {
           if (active) setRequestError(getErrorMessage(error, 'Unable to load products.'));
+        });
+      getUsers()
+        .then((users) => {
+          if (!active) return;
+          const suppliers = users.filter(
+            (user) => user.role === 'supplier' && user.status === 'approved' && user.isActive,
+          );
+          setApprovedSuppliers(suppliers);
+          if (suppliers[0]) setDefaultSupplierId((current) => current || suppliers[0]._id);
+        })
+        .catch((error: unknown) => {
+          if (active) setRequestError(getErrorMessage(error, 'Unable to load supplier accounts.'));
         });
       return () => { active = false; };
     }
@@ -111,6 +138,64 @@ export default function AdminProductsApprovalManagementPage() {
     }
   };
 
+  const handleCreateCategories = async () => {
+    setIsCreatingCategories(true);
+    setCategoryMessage('');
+    setRequestError('');
+    try {
+      const desiredCategories = ['Jackets', 'Dresses', 'Shoes', 'Accessories', 'Shirts'];
+      const existing = await getCategories();
+      const existingNames = new Set(existing.map((category) => category.name.trim().toLowerCase()));
+      const missingCategories = desiredCategories.filter(
+        (name) => !existingNames.has(name.toLowerCase()),
+      );
+      for (const name of missingCategories) {
+        await createCategory({
+          name,
+          description: `${name} products`,
+        });
+      }
+      setCategoryMessage(
+        missingCategories.length
+          ? `Added ${missingCategories.length} product categor${missingCategories.length === 1 ? 'y' : 'ies'}. Suppliers can now select them when listing products.`
+          : 'All five sample product categories are already available.',
+      );
+    } catch (error) {
+      setRequestError(getErrorMessage(error, 'Unable to create product categories.'));
+    } finally {
+      setIsCreatingCategories(false);
+    }
+  };
+
+  const handleImportSampleCatalog = async () => {
+    const assignedProducts = sampleCatalog.map((product) => ({
+      ...product,
+      supplierId: supplierAssignments[product.brand] || defaultSupplierId,
+    }));
+    if (assignedProducts.some((product) => !product.supplierId)) {
+      setRequestError('Assign each product brand to an active, approved supplier before importing.');
+      return;
+    }
+
+    setIsImportingSample(true);
+    setImportMessage('');
+    setRequestError('');
+    try {
+      const result = await importSampleCatalog(assignedProducts);
+      const refreshedProducts = await getAllProductsForManagement();
+      setProducts(refreshedProducts.map(toAdminProduct));
+      setImportMessage(
+        `Catalog import complete: ${result.created} added, ${result.reassigned} reassigned to the selected suppliers, ${result.unchanged} already assigned.`,
+      );
+    } catch (error) {
+      setRequestError(getErrorMessage(error, 'Unable to import the sample catalog.'));
+    } finally {
+      setIsImportingSample(false);
+    }
+  };
+
+  const sampleBrands = [...new Set(sampleCatalog.map((product) => product.brand))];
+
   return (
     <main className="bg-background min-h-screen py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -126,6 +211,93 @@ export default function AdminProductsApprovalManagementPage() {
         </motion.div>
 
         {requestError && <p role="alert" className="mb-6 text-sm text-destructive">{requestError}</p>}
+        <section className="mb-6 flex flex-col gap-4 rounded-xl border border-border bg-card p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-semibold">Sample catalog categories</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Add any missing categories needed for the sample products.
+            </p>
+            {categoryMessage && <p role="status" className="mt-2 text-sm text-green-700">{categoryMessage}</p>}
+          </div>
+          <button
+            type="button"
+            onClick={() => void handleCreateCategories()}
+            disabled={isCreatingCategories}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-semibold transition hover:bg-muted disabled:cursor-wait disabled:opacity-60"
+          >
+            <FiPlus className="h-4 w-4" />
+            {isCreatingCategories ? 'Adding categories...' : 'Add sample categories'}
+          </button>
+        </section>
+        <section className="mb-8 rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="mb-5">
+            <h2 className="font-semibold">Import the sample product catalog</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Import {sampleCatalog.length} listings directly into the database. Missing sample categories are created automatically. Assign each sample brand to one of your approved supplier accounts; supplier sign-in is not required.
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Images use the supplied URLs. Sample ratings and review counts are demo values and do not create customer review records.
+            </p>
+            {importMessage && <p role="status" className="mt-2 text-sm text-green-700">{importMessage}</p>}
+          </div>
+          {approvedSuppliers.length === 0 ? (
+            <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+              No active, approved supplier accounts are available. Approve a supplier first.
+            </p>
+          ) : (
+            <>
+              <label className="mb-4 block max-w-xl text-sm font-medium">
+                Default supplier for sample brands
+                <select
+                  value={defaultSupplierId}
+                  onChange={(event) => setDefaultSupplierId(event.target.value)}
+                  className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5"
+                >
+                  {approvedSuppliers.map((supplier) => (
+                    <option key={supplier._id} value={supplier._id}>
+                      {supplier.fullName} ({supplier.email})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <details className="mb-5 rounded-lg border border-border p-4">
+                <summary className="cursor-pointer text-sm font-medium">
+                  Assign individual brands to different suppliers
+                </summary>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {sampleBrands.map((brand) => (
+                    <label key={brand} className="text-sm">
+                      {brand}
+                      <select
+                        value={supplierAssignments[brand] || defaultSupplierId}
+                        onChange={(event) => setSupplierAssignments((current) => ({
+                          ...current,
+                          [brand]: event.target.value,
+                        }))}
+                        className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2"
+                      >
+                        {approvedSuppliers.map((supplier) => (
+                          <option key={supplier._id} value={supplier._id}>
+                            {supplier.fullName}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ))}
+                </div>
+              </details>
+              <button
+                type="button"
+                onClick={() => void handleImportSampleCatalog()}
+                disabled={isImportingSample || !defaultSupplierId}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
+              >
+                <FiPlus className="h-4 w-4" />
+                {isImportingSample ? 'Importing products...' : `Import ${sampleCatalog.length} sample products`}
+              </button>
+            </>
+          )}
+        </section>
 
         {/* Search & Filter */}
         <motion.div

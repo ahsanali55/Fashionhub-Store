@@ -1,5 +1,6 @@
 import api from '@/lib/axios';
 import type { ApiResponse } from '@/services/commerce.services';
+import type { SampleCatalogProduct } from '@/services/sampleCatalog';
 
 export interface BackendProduct {
   _id: string;
@@ -11,6 +12,9 @@ export interface BackendProduct {
   stock: number;
   rating?: number;
   numReviews?: number;
+  brand?: string;
+  keywords?: string[];
+  isNewProduct?: boolean;
   createdAt?: string;
   isVisible?: boolean;
   supplier:
@@ -67,8 +71,28 @@ export interface SupplierAnalytics {
   averageRating: number;
 }
 
+export interface SampleCatalogImportResult {
+  created: number;
+  reassigned: number;
+  unchanged: number;
+  products: BackendProduct[];
+}
+
 export const getCategories = async (): Promise<CategoryRecord[]> =>
   (await api.get<ApiResponse<CategoryRecord[]>>('/categories')).data.data;
+
+export const createCategory = async (input: {
+  name: string;
+  description: string;
+}): Promise<CategoryRecord> =>
+  (await api.post<ApiResponse<CategoryRecord>>('/categories', input)).data.data;
+
+export const importSampleCatalog = async (
+  products: Array<SampleCatalogProduct & { supplierId: string }>,
+): Promise<SampleCatalogImportResult> =>
+  (await api.post<ApiResponse<SampleCatalogImportResult>>('/products/admin/import-sample', {
+    products,
+  })).data.data;
 
 export const createProduct = async (input: {
   name: string;

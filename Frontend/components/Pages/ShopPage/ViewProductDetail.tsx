@@ -71,6 +71,7 @@ export default function ViewProductDetailPage() {
   );
   const auth = useAppSelector((state) => state.auth);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(true);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [reviewError, setReviewError] = useState('');
@@ -85,7 +86,8 @@ export default function ViewProductDetailPage() {
       .then((data) => { if (active) setReviews(data); })
       .catch((error: unknown) => {
         if (active) setReviewError(error instanceof Error ? error.message : 'Unable to load reviews.');
-      });
+      })
+      .finally(() => { if (active) setIsLoadingReviews(false); });
     return () => { active = false; };
   }, [id]);
 
@@ -122,6 +124,13 @@ export default function ViewProductDetailPage() {
       ? review.userId === auth.user?.id
       : review.userId._id === auth.user?.id,
   );
+  const averageReviewRating = reviews.length
+    ? reviews.reduce((total, review) => total + review.rating, 0) / reviews.length
+    : 0;
+  const reviewDistribution = [5, 4, 3, 2, 1].map((rating) => ({
+    rating,
+    count: reviews.filter((review) => review.rating === rating).length,
+  }));
 
   const handleReviewSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -508,77 +517,152 @@ export default function ViewProductDetailPage() {
 
         </motion.section>
 
-        <section className="mt-20 border-t border-border pt-10">
-          <h2 className="text-2xl font-bold mb-6">Customer Reviews</h2>
-          {reviewError && <p role="alert" className="mb-4 text-sm text-destructive">{reviewError}</p>}
+        <section className="mt-16 border-t border-border pt-10 sm:mt-20">
+          <div className="mb-7 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">From our customers</p>
+              <h2 className="mt-2 text-2xl font-bold sm:text-3xl">Reviews & ratings</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Only customers with a delivered order can leave a review.</p>
+            </div>
+            {reviews.length > 0 && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <FiStar className="h-4 w-4 fill-amber-400 text-amber-400" />
+                <span className="font-semibold text-foreground">{averageReviewRating.toFixed(1)}</span>
+                <span>from {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}</span>
+              </div>
+            )}
+          </div>
+
+          {reviewError && <p role="alert" className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{reviewError}</p>}
           {auth.user?.role === 'customer' && isCheckingReviewEligibility && (
-            <p className="mb-6 text-sm text-muted-foreground">Checking your order history...</p>
+            <p className="mb-6 text-sm text-muted-foreground">Checking your order history…</p>
           )}
           {auth.user?.role === 'customer' && !isCheckingReviewEligibility && canReview && !hasReviewed && (
-            <form onSubmit={handleReviewSubmit} className="mb-8 max-w-2xl space-y-4 rounded-xl border border-border bg-card p-6">
-              <label className="block text-sm font-medium">
-                Rating
-                <select
-                  value={reviewRating}
-                  onChange={(event) => setReviewRating(Number(event.target.value))}
-                  className="mt-2 block rounded-lg border border-border bg-background px-3 py-2"
-                >
-                  {[5, 4, 3, 2, 1].map((rating) => (
-                    <option key={rating} value={rating}>{rating} stars</option>
+            <form onSubmit={handleReviewSubmit} className="mb-8 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+              <div className="mb-5">
+                <h3 className="font-semibold">Share your experience</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Your feedback helps other shoppers make a confident choice.</p>
+              </div>
+              <fieldset className="mb-5">
+                <legend className="mb-2 text-sm font-medium">Your rating</legend>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <button
+                      key={rating}
+                      type="button"
+                      aria-pressed={reviewRating === rating}
+                      aria-label={`${rating} ${rating === 1 ? 'star' : 'stars'}`}
+                      onClick={() => setReviewRating(rating)}
+                      className="rounded-md p-1 transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    >
+                      <FiStar className={`h-7 w-7 ${rating <= reviewRating ? 'fill-amber-400 text-amber-500' : 'text-muted-foreground/40'}`} />
+                    </button>
                   ))}
-                </select>
-              </label>
+                  <span className="ml-2 text-sm font-medium text-muted-foreground">
+                    {reviewRating === 5 ? 'Excellent' : reviewRating === 4 ? 'Very good' : reviewRating === 3 ? 'Good' : reviewRating === 2 ? 'Fair' : 'Needs improvement'}
+                  </span>
+                </div>
+              </fieldset>
               <label className="block text-sm font-medium">
                 Your review
                 <textarea
                   value={reviewComment}
                   onChange={(event) => setReviewComment(event.target.value)}
                   required
-                  rows={3}
+                  rows={4}
                   maxLength={1000}
-                  className="mt-2 block w-full rounded-lg border border-border bg-background px-3 py-2"
+                  placeholder="What did you like or think could be better?"
+                  className="mt-2 block w-full resize-y rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/15"
                 />
               </label>
-              {reviewSuccess && <p role="status" className="text-sm text-green-700">{reviewSuccess}</p>}
-              <button
-                type="submit"
-                disabled={isSubmittingReview || !reviewComment.trim()}
-                className="rounded-lg bg-primary px-5 py-2 text-primary-foreground disabled:opacity-50"
-              >
-                {isSubmittingReview ? 'Submitting...' : 'Submit Review'}
-              </button>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span className="text-xs text-muted-foreground">{reviewComment.length}/1000</span>
+                <button
+                  type="submit"
+                  disabled={isSubmittingReview || !reviewComment.trim()}
+                  className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isSubmittingReview ? 'Submitting review…' : 'Submit review'}
+                </button>
+              </div>
+              {reviewSuccess && <p role="status" className="mt-3 text-sm text-green-700">{reviewSuccess}</p>}
             </form>
           )}
           {auth.user?.role === 'customer' && !isCheckingReviewEligibility && !canReview && (
-            <p className="mb-6 text-sm text-muted-foreground">
-              Reviews are available after an order containing this product has been delivered.
+            <p className="mb-6 rounded-xl border border-border bg-secondary/50 p-4 text-sm text-muted-foreground">
+              Reviews unlock after an order containing this product has been delivered.
             </p>
           )}
           {auth.user?.role === 'customer' && !isCheckingReviewEligibility && canReview && hasReviewed && (
-            <p className="mb-6 text-sm text-muted-foreground">You have already reviewed this product.</p>
+            <p className="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">Thanks for sharing your feedback. You have already reviewed this product.</p>
           )}
           {auth.user?.role !== 'customer' && (
-            <p className="mb-6 text-sm text-muted-foreground">Sign in as a customer to leave a review.</p>
+            <p className="mb-6 rounded-xl border border-border bg-secondary/50 p-4 text-sm text-muted-foreground">Sign in as a customer to leave a review. Reviews are enabled after delivery.</p>
           )}
-          {reviewError && !auth.user && <p role="alert" className="mb-4 text-sm text-destructive">{reviewError}</p>}
-          {reviews.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No reviews yet.</p>
+          {isLoadingReviews ? (
+            <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">Loading customer reviews…</div>
+          ) : reviews.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-card px-6 py-10 text-center">
+              <FiStar className="mx-auto h-8 w-8 text-amber-400" />
+              <h3 className="mt-3 font-semibold">Be the first to review</h3>
+              <p className="mt-1 text-sm text-muted-foreground">There are no customer reviews for this product yet.</p>
+            </div>
           ) : (
-            <div className="space-y-4">
-              {reviews.map((review) => (
-                <article key={review._id} className="rounded-xl border border-border bg-card p-5">
-                  <div className="flex items-center justify-between gap-4">
-                    <p className="font-semibold">
-                      {typeof review.userId === 'string' ? 'Customer' : review.userId.fullName}
-                    </p>
-                    <span className="text-sm text-amber-600">{review.rating}/5</span>
-                  </div>
-                  <p className="mt-3 text-sm text-muted-foreground">{review.comment}</p>
-                  <time className="mt-3 block text-xs text-muted-foreground">
-                    {new Date(review.createdAt).toLocaleDateString()}
-                  </time>
-                </article>
-              ))}
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+              <aside className="h-fit rounded-2xl border border-border bg-card p-5 shadow-sm">
+                <div className="mb-5 flex items-end gap-2">
+                  <span className="text-5xl font-bold tracking-tight">{averageReviewRating.toFixed(1)}</span>
+                  <span className="pb-1 text-sm text-muted-foreground">out of 5</span>
+                </div>
+                <div className="mb-5 flex gap-1" aria-label={`${averageReviewRating.toFixed(1)} out of 5 stars`}>
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <FiStar key={rating} className={`h-4 w-4 ${rating <= Math.round(averageReviewRating) ? 'fill-amber-400 text-amber-500' : 'text-muted-foreground/30'}`} />
+                  ))}
+                </div>
+                <p className="mb-4 text-xs text-muted-foreground">{reviews.length} verified {reviews.length === 1 ? 'review' : 'reviews'}</p>
+                <div className="space-y-2.5">
+                  {reviewDistribution.map(({ rating, count }) => (
+                    <div key={rating} className="flex items-center gap-2 text-xs">
+                      <span className="w-3 text-muted-foreground">{rating}</span>
+                      <FiStar className="h-3 w-3 fill-amber-400 text-amber-500" />
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
+                        <div
+                          className="h-full rounded-full bg-amber-400"
+                          style={{ width: `${reviews.length ? (count / reviews.length) * 100 : 0}%` }}
+                        />
+                      </div>
+                      <span className="w-5 text-right text-muted-foreground">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              </aside>
+              <div className="space-y-3">
+                {reviews.map((review) => (
+                  <article key={review._id} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                          {(typeof review.userId === 'string' ? 'C' : review.userId.fullName.trim().charAt(0).toUpperCase()) || 'C'}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">
+                            {typeof review.userId === 'string' ? 'Customer' : review.userId.fullName}
+                          </p>
+                          <time className="mt-0.5 block text-xs text-muted-foreground">
+                            {new Date(review.createdAt).toLocaleDateString()}
+                          </time>
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                        <FiStar className="h-3 w-3 fill-amber-400 text-amber-500" />
+                        {review.rating}.0
+                      </div>
+                    </div>
+                    <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-foreground/85">{review.comment}</p>
+                    <p className="mt-4 border-t border-border pt-3 text-[11px] font-medium text-green-700">Verified purchase</p>
+                  </article>
+                ))}
+              </div>
             </div>
           )}
         </section>

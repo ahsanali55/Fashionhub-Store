@@ -4,6 +4,7 @@ import { ApiError } from "../utils/ApiError";
 import jwt from "jsonwebtoken";
 import cloudinary from "../config/cloudinary";
 import bcrypt from "bcrypt";
+import { deleteLocalImage } from "../utils/uploadImage";
 interface RegisterUserData {
   fullName: string;
   email: string;
@@ -119,6 +120,14 @@ export const logoutUser = async (userId: string): Promise<void> => {
 export const deleteFromCloudinary = async (imageUrl: string) => {
   try {
     if (!imageUrl) return;
+    if (await deleteLocalImage(imageUrl)) return;
+    if (
+      !process.env.CLOUDINARY_CLOUD_NAME ||
+      !process.env.CLOUDINARY_API_KEY ||
+      !process.env.CLOUDINARY_API_SECRET
+    ) {
+      return;
+    }
     // Extract public ID from Cloudinary URL
     const parts = imageUrl.split("/");
     const filename = parts[parts.length - 1];

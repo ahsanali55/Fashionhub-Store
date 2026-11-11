@@ -12,6 +12,9 @@ interface ApiProduct {
   stock: number;
   rating?: number;
   numReviews?: number;
+  brand?: string;
+  keywords?: string[];
+  isNewProduct?: boolean;
   createdAt: string;
   isVisible?: boolean;
   supplier:
@@ -45,6 +48,9 @@ const mapApiProducts = (products: ApiProduct[]): Product[] =>
     inStock: product.stock > 0,
     rating: product.rating ?? 0,
     reviews: product.numReviews ?? 0,
+    brand: product.brand ?? '',
+    keywords: product.keywords ?? [],
+    isNew: product.isNewProduct ?? false,
     createdAt: product.createdAt,
     isVisible: product.isVisible ?? true,
     supplier:
@@ -55,6 +61,4 @@ const mapApiProducts = (products: ApiProduct[]): Product[] =>
       typeof product.supplier === 'string'
         ? product.supplier
         : product.supplier._id,
-    keywords: [],
-    brand: '',
   }));

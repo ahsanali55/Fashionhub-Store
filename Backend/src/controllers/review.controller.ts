@@ -79,6 +79,8 @@ export const createProductReview = asyncHandler(async (req: Request, res: Respon
     throw error;
   }
 
+  await review.populate("userId", "fullName avatar");
+
   // Recalculate product rating
   await updateProductRating(productId);
 

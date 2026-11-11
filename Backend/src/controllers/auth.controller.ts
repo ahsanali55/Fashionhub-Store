@@ -192,7 +192,12 @@ export const updateAvatar = asyncHandler(async (req: Request, res: Response) => 
   }
 
   const previousAvatar = user.avatar;
-  const avatar = await uploadImage(req.file.buffer, "fashionhub/avatars");
+  const avatar = await uploadImage(
+    req.file.buffer,
+    "fashionhub/avatars",
+    `${req.protocol}://${req.get("host")}`,
+    req.file.mimetype,
+  );
   user.avatar = avatar;
   try {
     await user.save();

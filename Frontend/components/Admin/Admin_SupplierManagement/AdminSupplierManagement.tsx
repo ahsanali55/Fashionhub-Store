@@ -37,7 +37,7 @@ export default function AdminSuppliersManagementsPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
-  const [action, setAction] = useState<'approve' | 'reject' | 'suspend' | null>(null);
+  const [action, setAction] = useState<'approve' | 'reject' | 'suspend' | 'activate' | null>(null);
   const [requestError, setRequestError] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -93,7 +93,7 @@ export default function AdminSuppliersManagementsPage() {
       supplier.owner.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAction = (supplier: Supplier, actionType: 'approve' | 'reject' | 'suspend') => {
+  const handleAction = (supplier: Supplier, actionType: 'approve' | 'reject' | 'suspend' | 'activate') => {
     setSelectedSupplier(supplier);
     setAction(actionType);
   };
@@ -108,11 +108,11 @@ export default function AdminSuppliersManagementsPage() {
       } else if (action === 'reject') {
         await rejectSupplier(selectedSupplier.id);
       } else {
-        await setUserActive(selectedSupplier.id, false);
+        await setUserActive(selectedSupplier.id, action === 'activate');
       }
       setSuppliers((current) => current.map((supplier) =>
         supplier.id === selectedSupplier.id
-          ? { ...supplier, status: action === 'approve' ? 'active' : 'suspended' }
+          ? { ...supplier, status: action === 'approve' || action === 'activate' ? 'active' : 'suspended' }
           : supplier,
       ));
       setSelectedSupplier(null);
@@ -235,6 +235,14 @@ export default function AdminSuppliersManagementsPage() {
                             Suspend
                           </button>
                         </div>
+                      )}
+                      {supplier.status === 'suspended' && (
+                        <button
+                          onClick={() => handleAction(supplier, 'activate')}
+                          className="text-green-600 hover:text-green-700 font-medium text-sm transition"
+                        >
+                          Reactivate
+                        </button>
                       )}
                     </td>
                   </motion.tr>

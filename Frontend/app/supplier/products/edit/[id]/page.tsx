@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useRouter, useParams } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
-import { FiArrowLeft, FiImage, FiDollarSign, FiHash, FiSave } from 'react-icons/fi';
+import { FiArrowLeft, FiHash, FiSave } from 'react-icons/fi';
 import Link from 'next/link';
 import { useState } from 'react';
 import { updateProduct } from '@/services/management.services';
@@ -150,9 +150,9 @@ export default function EditProductPage() {
 
             {/* Price */}
             <div>
-              <label className="block text-sm font-semibold mb-2">Price</label>
+              <label className="block text-sm font-semibold mb-2">Price (PKR)</label>
               <div className="flex items-center gap-2 px-4 py-3 border border-border rounded-lg focus-within:ring-2 focus-within:ring-accent bg-background">
-                <FiDollarSign className="text-muted-foreground" />
+                <span className="text-sm font-medium text-muted-foreground">PKR</span>
                 <input
                   type="number"
                   name="price"

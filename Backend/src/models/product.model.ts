@@ -10,6 +10,9 @@ export interface IProduct extends Document {
   supplier: mongoose.Types.ObjectId;
   rating: number;
   numReviews: number;
+  brand?: string;
+  keywords: string[];
+  isNewProduct: boolean;
   isVisible: boolean;
 }
 
@@ -24,6 +27,9 @@ const productSchema = new Schema<IProduct>(
     supplier: { type: Schema.Types.ObjectId, ref: "User", required: true },
     rating: { type: Number, default: 0 },
     numReviews: { type: Number, default: 0 },
+    brand: { type: String, trim: true, default: "" },
+    keywords: { type: [String], default: [] },
+    isNewProduct: { type: Boolean, default: false },
     isVisible: { type: Boolean, default: true },
   },
   { timestamps: true }

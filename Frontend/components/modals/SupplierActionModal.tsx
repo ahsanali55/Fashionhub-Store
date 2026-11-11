@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 interface SupplierActionModalProps {
   isOpen: boolean;
   supplier: any | null;
-  action: 'approve' | 'reject' | 'suspend' | null;
+  action: 'approve' | 'reject' | 'suspend' | 'activate' | null;
   onClose: () => void;
   onConfirm: () => void;
 }
@@ -23,18 +23,21 @@ export function SupplierActionModal({
     approve: `Approve ${supplier.name} as a platform supplier? They'll gain access to sell products.`,
     reject: `Reject ${supplier.name}? This cannot be easily undone.`,
     suspend: `Suspend ${supplier.name}? They won't be able to list or sell products.`,
+    activate: `Reactivate ${supplier.name}? Their eligible products will be available for sale again.`,
   };
 
   const buttonText = {
     approve: 'Approve',
     reject: 'Reject',
     suspend: 'Suspend',
+    activate: 'Reactivate',
   };
 
   const buttonColor = {
     approve: 'bg-green-600 hover:bg-green-700',
     reject: 'bg-red-600 hover:bg-red-700',
     suspend: 'bg-yellow-600 hover:bg-yellow-700',
+    activate: 'bg-green-600 hover:bg-green-700',
   };
 
   return (

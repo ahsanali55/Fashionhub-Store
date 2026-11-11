@@ -8,6 +8,7 @@ import {
   getAllProductsForAdmin,
   getSupplierProducts,
   setProductVisibility,
+  importSampleProductsForAdmin,
 } from "../controllers/product.controller";
 import { protect } from "../middleware/auth.middleware";
 import { authorize } from "../middleware/role.middleware";
@@ -16,6 +17,7 @@ import { upload } from "../middleware/upload.middleware";
 const router = Router();
 
 router.get("/admin/all", protect, authorize("admin"), getAllProductsForAdmin);
+router.post("/admin/import-sample", protect, authorize("admin"), importSampleProductsForAdmin);
 router.get("/mine", protect, authorize("supplier"), getSupplierProducts);
 router.patch("/:id/visibility", protect, authorize("admin"), setProductVisibility);
 router.get("/", getAllProducts);
