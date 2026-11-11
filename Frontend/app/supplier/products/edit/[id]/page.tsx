@@ -4,14 +4,18 @@ import { motion } from 'framer-motion';
 import { useRouter, useParams } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
-import { FiArrowLeft, FiImage, FiDollarSign, FiHash, FiSave } from 'react-icons/fi';
+import { FiArrowLeft, FiHash, FiSave } from 'react-icons/fi';
 import Link from 'next/link';
 import { useState } from 'react';
+import { updateProduct } from '@/services/management.services';
+import { useAppDispatch } from '@/hooks/redux';
+import { loadProducts } from '@/redux/slices/productsSlice';
 
 export default function EditProductPage() {
   const router = useRouter();
   const params = useParams();
   const products = useSelector((state: RootState) => state.products);
+  const dispatch = useAppDispatch();
   const productId = params.id as string;
   const product = products.items.find(p => p.id === productId);
 
@@ -26,6 +30,8 @@ export default function EditProductPage() {
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [requestError, setRequestError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -37,13 +43,24 @@ export default function EditProductPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
+    setRequestError('');
+    try {
+      await updateProduct(productId, {
+        name: formData.name,
+        category: formData.category,
+        price: Number(formData.price),
+        stock: Number(formData.stock),
+        description: formData.description,
+        imageFile: imageFile ?? undefined,
+      });
+      await dispatch(loadProducts());
       setSaved(true);
-      setTimeout(() => {
-        router.push('/supplier/products');
-      }, 1500);
-    }, 1000);
+      router.push('/supplier/products');
+    } catch (error) {
+      setRequestError(error instanceof Error ? error.message : 'Unable to save product changes.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!product) {
@@ -133,9 +150,9 @@ export default function EditProductPage() {
 
             {/* Price */}
             <div>
-              <label className="block text-sm font-semibold mb-2">Price</label>
+              <label className="block text-sm font-semibold mb-2">Price (PKR)</label>
               <div className="flex items-center gap-2 px-4 py-3 border border-border rounded-lg focus-within:ring-2 focus-within:ring-accent bg-background">
-                <FiDollarSign className="text-muted-foreground" />
+                <span className="text-sm font-medium text-muted-foreground">PKR</span>
                 <input
                   type="number"
                   name="price"
@@ -166,20 +183,15 @@ export default function EditProductPage() {
               </div>
             </div>
 
-            {/* Image URL */}
+            {/* Product Image */}
             <div>
-              <label className="block text-sm font-semibold mb-2">Image URL</label>
-              <div className="flex items-center gap-2 px-4 py-3 border border-border rounded-lg focus-within:ring-2 focus-within:ring-accent bg-background">
-                <FiImage className="text-muted-foreground" />
-                <input
-                  type="url"
-                  name="image"
-                  value={formData.image}
-                  onChange={handleChange}
-                  placeholder="https://example.com/image.jpg"
-                  className="flex-1 focus:outline-none bg-transparent"
-                />
-              </div>
+              <label className="block text-sm font-semibold mb-2">Product Image</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(event) => setImageFile(event.target.files?.[0] ?? null)}
+                className="w-full text-sm"
+              />
             </div>
 
             {/* Image Preview */}
@@ -187,12 +199,14 @@ export default function EditProductPage() {
               <div className="pt-4">
                 <label className="block text-sm font-semibold mb-2">Image Preview</label>
                 <img
-                  src={formData.image}
+                  src={imageFile ? URL.createObjectURL(imageFile) : formData.image}
                   alt={formData.name}
                   className="w-full h-48 object-cover rounded-lg"
                 />
               </div>
             )}
+
+            {requestError && <p role="alert" className="text-sm text-destructive">{requestError}</p>}
 
             {/* Action Buttons */}
             <div className="flex gap-4 pt-6">

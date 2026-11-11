@@ -2,6 +2,7 @@
 import { Request, Response } from "express";
 import { Review } from "../models/review.model";
 import { Product } from "../models/product.model";
+import { Order } from "../models/order.model";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
@@ -26,9 +27,18 @@ const updateProductRating = async (productId: string) => {
 
 // 1. Submit a review for a product
 export const createProductReview = asyncHandler(async (req: Request, res: Response) => {
-    console.log("Create Product Review Request:", req.params.id);
   const { rating, comment } = req.body;
-  const productId = req.params.id as string; // Explicitly cast as string
+  const productId = req.params.id;
+  if (typeof productId !== "string" || !/^[a-f\d]{24}$/i.test(productId)) {
+    throw new ApiError(400, "Invalid product ID");
+  }
+  const numericRating = Number(rating);
+  if (!Number.isInteger(numericRating) || numericRating < 1 || numericRating > 5) {
+    throw new ApiError(400, "Rating must be a whole number between 1 and 5");
+  }
+  if (typeof comment !== "string" || !comment.trim() || comment.trim().length > 1000) {
+    throw new ApiError(400, "Review comment must be between 1 and 1000 characters");
+  }
 
   const product = await Product.findById(productId);
   if (!product) {
@@ -41,12 +51,35 @@ export const createProductReview = asyncHandler(async (req: Request, res: Respon
     throw new ApiError(400, "You have already reviewed this product");
   }
 
-  const review = await Review.create({
-    productId,
+  const deliveredOrder = await Order.exists({
     userId: req.user?._id,
-    rating: Number(rating),
-    comment,
+    items: { $elemMatch: { productId, status: "delivered" } },
   });
+  if (!deliveredOrder) {
+    throw new ApiError(403, "You can review a product after its order has been delivered");
+  }
+
+  let review;
+  try {
+    review = await Review.create({
+      productId,
+      userId: req.user?._id,
+      rating: numericRating,
+      comment: comment.trim(),
+    });
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === 11000
+    ) {
+      throw new ApiError(400, "You have already reviewed this product");
+    }
+    throw error;
+  }
+
+  await review.populate("userId", "fullName avatar");
 
   // Recalculate product rating
   await updateProductRating(productId);
@@ -58,8 +91,10 @@ export const createProductReview = asyncHandler(async (req: Request, res: Respon
 
 // 2. Get all reviews for a specific product
 export const getProductReviews = asyncHandler(async (req: Request, res: Response) => {
-    console.log("Get Product Reviews Request:", req.params.id);
-  const productId = req.params.id as string; // Explicitly cast as string
+  const productId = req.params.id;
+  if (typeof productId !== "string" || !/^[a-f\d]{24}$/i.test(productId)) {
+    throw new ApiError(400, "Invalid product ID");
+  }
 
   const reviews = await Review.find({ productId })
     .populate("userId", "fullName avatar")
@@ -69,4 +104,3 @@ export const getProductReviews = asyncHandler(async (req: Request, res: Response
     new ApiResponse("Product reviews fetched successfully", reviews)
   );
 });
-

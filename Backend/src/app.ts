@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
+import path from "path";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { errorHandler } from "./middleware/error.middleware";
@@ -15,16 +16,21 @@ import cartRoutes from "./routes/cart.routes";
 import wishlistRoutes from "./routes/wishlist.routes";
 import categoryRoutes from "./routes/category.routes";
 const app = express();
+const allowedFrontendOrigins = (process.env.FRONTEND_URL || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: allowedFrontendOrigins,
     credentials: true,
   })
 );
 
 app.use(express.json());
 app.use(cookieParser());
+app.use("/uploads", express.static(path.resolve(__dirname, "../uploads")));
 
 
 // Routes

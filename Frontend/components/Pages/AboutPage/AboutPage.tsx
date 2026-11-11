@@ -2,8 +2,10 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { FiArrowRight, FiCheck, FiUsers, FiGlobe, FiAward } from 'react-icons/fi';
-
+import { FiArrowRight, FiUsers, FiShield, FiCode, FiCheck } from 'react-icons/fi';
+import { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/store';
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -25,103 +27,115 @@ const itemVariants = {
 };
 
 export default function AboutPage() {
-  const values = [
-    { icon: FiUsers, title: 'Community First', description: 'Building a thriving community of fashion enthusiasts and sellers' },
-    { icon: FiGlobe, title: 'Global Reach', description: 'Connecting fashion lovers worldwide with premium collections' },
-    { icon: FiAward, title: 'Quality Assured', description: 'Every product vetted for authenticity and excellence' },
+  const auth = useSelector((state: RootState) => state.auth);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const isLoggedIn = isMounted && auth.isAuthenticated;
+
+  const dashboardHref =
+    auth.user?.role === 'admin'
+      ? '/admin/dashboard'
+      : auth.user?.role === 'supplier'
+        ? '/supplier/dashboard'
+        : '/customer/dashboard';
+  const focus = [
+    {
+      icon: FiUsers,
+      title: 'Multi-Role Marketplace',
+      description: 'Customer, Supplier, and Admin roles, each with their own dashboard and permissions.',
+    },
+    {
+      icon: FiShield,
+      title: 'Built with Security in Mind',
+      description: 'Role-based access control, protected routes, and a proper approval workflow for suppliers.',
+    },
+    {
+      icon: FiCode,
+      title: 'MERN Stack',
+      description: 'Next.js, Node.js, Express, and MongoDB, from database schema to deployed frontend.',
+    },
   ];
 
   const team = [
-    { name: 'Emma Wilson', role: 'Founder & CEO', image: 'https://i.pravatar.cc/150?img=5' },
-    { name: 'James Chen', role: 'CTO', image: 'https://i.pravatar.cc/150?img=6' },
-    { name: 'Sofia Rodriguez', role: 'Head of Design', image: 'https://i.pravatar.cc/150?img=7' },
-    { name: 'Marcus Johnson', role: 'Head of Partnerships', image: 'https://i.pravatar.cc/150?img=8' },
+    {
+      name: 'Awais Tariq',
+      role: 'Frontend Development',
+      image: '/team/awais.jpeg',
+    },
+    {
+      name: 'Ahsan',
+      role: 'Backend & Database',
+      image: '/team/ahsan.jpeg',
+    },
   ];
 
   const timeline = [
-    { year: '2020', title: 'Founded FashionHub', description: 'Started with a vision to democratize fashion e-commerce' },
-    { year: '2021', title: 'Reached 100K Users', description: 'Rapid growth in customer base and supplier network' },
-    { year: '2022', title: 'Global Expansion', description: 'Expanded to 45 countries across four continents' },
-    { year: '2024', title: 'Premium Marketplace Launch', description: 'Launched advanced features for suppliers and customers' },
+    { label: 'Proposal', title: 'Project Proposal Chosen', description: 'FashionHub selected and scoped as a multi-role fashion marketplace for CS619.', status: 'done' },
+    { label: 'SRS', title: 'SRS Finalized', description: 'Functional and non-functional requirements defined and documented.', status: 'done' },
+    { label: 'Design', title: 'Design Document Completed', description: 'ERD, sequence diagrams, architecture, and database schema mapped out.', status: 'done' },
+    { label: 'Prototype', title: 'Marketplace Prototype Built', description: 'The core storefront, account flows, navigation, and product search were connected to the application backend.', status: 'done' },
+    { label: 'Final', title: 'Final Project Completed', description: 'Completed and verified the marketplace, customer, supplier, and admin experiences, including backend-connected ordering, notifications, and account recovery.', status: 'current' },
   ];
 
   return (
     <main className="bg-background">
-      {/* Premium Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden py-20 md:py-32">
-        {/* Animated Background Elements */}
-        <div className="absolute top-0 right-5 w-96 h-96 bg-primary/40 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-5 w-96 h-96 bg-accent/40 rounded-full blur-3xl" />
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent" />
+      {/* Hero Section */}
+      <section className="relative overflow-hidden pt-25 md:pt-28 pb-10">
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="max-w-4xl mx-auto text-center space-y-6 px-4 relative z-10"
+          transition={{ duration: 0.6 }}
+          className="max-w-3xl mx-auto text-center space-y-6 px-4 relative z-10"
         >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="inline-block px-4 py-2 bg-primary/10 border border-primary/20 rounded-full"
-          >
-            <span className="text-primary font-semibold text-sm">Our Story</span>
-          </motion.div>
+           <span className="inline-flex items-center gap-2 px-3.5 py-1.5 mb-6 rounded-full bg-primary/10 border border-primary/20 text-sm font-semibold text-primary">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                Final Year Project · CS619
+              </span>
 
-          <motion.h1
-            className="text-5xl md:text-7xl font-bold text-balance leading-tight"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.8 }}
-          >
-            Fashion Reimagined for <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">Everyone</span>
-          </motion.h1>
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[0.95] text-foreground mb-6">
+            About <span className="text-primary">FashionHub</span>
+          </h1>
 
-          <motion.p
-            className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.8 }}
-          >
-            FashionHub is on a mission to make premium fashion accessible, authentic, and inspiring for everyone around the world.
-          </motion.p>
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+            A multi-role fashion marketplace connecting suppliers and customers, built by two developers as a
+            final year project.
+          </p>
 
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.8 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8"
-          >
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
             <Link
               href="/shop"
-              className="px-8 py-4 bg-primary text-white rounded-lg hover:opacity-90 transition font-semibold flex items-center gap-2"
+              className="px-8 py-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors duration-300 font-semibold flex items-center gap-2"
             >
-              Explore Collections <FiArrowRight className="w-5 h-5" />
+              Explore the Marketplace
             </Link>
             <Link
               href="/contact"
-              className="px-8 py-4 border-2 border-primary text-primary rounded-lg hover:bg-primary hover:text-white transition font-semibold"
+              className="group flex items-center justify-center gap-2 px-8 py-4 text-foreground font-bold rounded-lg hover:bg-muted/60 transition-colors duration-300"
             >
-              Get in Touch
+              Get in Touch <FiArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
             </Link>
-          </motion.div>
+          </div>
         </motion.div>
       </section>
 
-      {/* Values Section */}
-      <section className="py-20 md:py-24 px-4">
+      {/* What We Focused On */}
+      <section className="pt-10 md:pt-15 pb-10 px-4">
         <div className="max-w-6xl mx-auto">
           <motion.div
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true }}
-            className="mb-16 text-center"
+            viewport={{ once: true, margin: '-80px' }}
+            className="mb-14 text-center"
           >
-            <h2 className="text-4xl font-bold mb-4">Our Values</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">What We Focused On</h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Guiding principles that shape everything we do
+              The core ideas behind how FashionHub was designed and built
             </p>
           </motion.div>
 
@@ -129,21 +143,27 @@ export default function AboutPage() {
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-8"
+            viewport={{ once: true, margin: '-80px' }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-6"
           >
-            {values.map((value, i) => {
-              const Icon = value.icon;
+            {focus.map((item, i) => {
+              const Icon = item.icon;
               return (
                 <motion.div
                   key={i}
                   variants={itemVariants}
-                  whileHover={{ y: -8 }}
-                  className="bg-card p-8 rounded-lg border border-border hover:shadow-lg transition"
+                  className="group bg-card p-8 rounded-2xl border border-border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
                 >
-                  <Icon className="w-12 h-12 text-primary mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">{value.title}</h3>
-                  <p className="text-muted-foreground">{value.description}</p>
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-5
+                  transition-all duration-300
+                  group-hover:bg-primary
+                    group-hover:text-primary-foreground
+                    group-hover:scale-105
+                  ">
+                    <Icon className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-lg font-bold mb-2 text-foreground">{item.title}</h3>
+                  <p className="text-muted-foreground text-sm leading-6">{item.description}</p>
                 </motion.div>
               );
             })}
@@ -152,41 +172,39 @@ export default function AboutPage() {
       </section>
 
       {/* Team Section */}
-      <section className="py-20 md:py-24 px-4 bg-secondary">
-        <div className="max-w-6xl mx-auto">
+      <section className="pt-10 md:pt-15 pb-10 px-4 bg-muted/40">
+        <div className="max-w-3xl mx-auto">
           <motion.div
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true }}
-            className="mb-16 text-center"
+            viewport={{ once: true, margin: '-80px' }}
+            className="mb-14 text-center"
           >
-            <h2 className="text-4xl font-bold mb-4">Meet the Team</h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Passionate individuals dedicated to transforming fashion commerce
-            </p>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">The Team</h2>
+            <p className="text-muted-foreground text-lg">Two developers, one project</p>
           </motion.div>
 
           <motion.div
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+            viewport={{ once: true, margin: '-80px' }}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-xl mx-auto"
           >
             {team.map((member, i) => (
               <motion.div
                 key={i}
                 variants={itemVariants}
-                className="bg-background rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition text-center"
+                className="bg-card rounded-2xl overflow-hidden border border-border shadow-sm hover:shadow-lg transition-all duration-300 text-center"
               >
                 <img
                   src={member.image}
                   alt={member.name}
-                  className="w-full h-48 object-cover"
+                  className="w-full h-56 object-cover"
                 />
                 <div className="p-6">
-                  <h3 className="font-semibold text-lg">{member.name}</h3>
+                  <h3 className="font-bold text-lg text-foreground">{member.name}</h3>
                   <p className="text-sm text-muted-foreground">{member.role}</p>
                 </div>
               </motion.div>
@@ -195,99 +213,103 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Timeline Section */}
-      <section className="py-20 md:py-24 px-4">
-        <div className="max-w-4xl mx-auto">
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="mb-16 text-center"
-          >
-            <h2 className="text-4xl font-bold mb-4">Our Journey</h2>
-            <p className="text-muted-foreground text-lg">
-              Milestones in our growth and expansion
-            </p>
-          </motion.div>
+      {/* Project Timeline */}
+  <section className="pt-10 md:pt-15 pb-10 px-4">
+  <div className="max-w-3xl mx-auto">
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: '-80px' }}
+      className="mb-14 text-center"
+    >
+      <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">Project Timeline</h2>
+      <p className="text-muted-foreground text-lg">From proposal to a working marketplace</p>
+    </motion.div>
 
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="space-y-8"
-          >
-            {timeline.map((item, i) => (
-              <motion.div
-                key={i}
-                variants={itemVariants}
-                className="flex gap-6 items-start"
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: '-80px' }}
+      className="space-y-8"
+    >
+      {timeline.map((item, i) => {
+        const isDone = item.status === 'done';
+        const isCurrent = item.status === 'current';
+        const isUpcoming = item.status === 'upcoming';
+
+        return (
+          <motion.div key={i} variants={itemVariants} className="flex gap-6 items-start">
+            <div className="flex flex-col items-center shrink-0">
+              <div
+                className={`size-16 rounded-full flex items-center justify-center font-bold text-xs text-center px-1 transition-colors duration-300 ${
+                  isDone
+                    ? 'bg-primary text-primary-foreground'
+                    : isCurrent
+                      ? 'bg-primary text-primary-foreground ring-4 ring-primary/25'
+                      : 'bg-muted text-muted-foreground border border-border'
+                }`}
               >
-                <div className="flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">
-                    {item.year}
-                  </div>
-                  {i < timeline.length - 1 && (
-                    <div className="w-1 h-24 bg-border mt-4" />
-                  )}
-                </div>
-                <div className="pt-2">
-                  <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
-                  <p className="text-muted-foreground">{item.description}</p>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
+                {item.label}
+              </div>
+              {i < timeline.length - 1 && (
+                <div className={`w-1 h-20 mt-4 transition-colors duration-300 ${isDone ? 'bg-primary' : 'bg-border'}`} />
+              )}
+            </div>
 
-      {/* Stats Section */}
-      <section className="py-20 md:py-24 px-4 bg-foreground text-white">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center"
-          >
-            {[
-              { number: '500K+', label: 'Happy Customers' },
-              { number: '5K+', label: 'Fashion Suppliers' },
-              { number: '50K+', label: 'Premium Products' },
-              { number: '45', label: 'Countries' },
-            ].map((stat, i) => (
-              <motion.div key={i} variants={itemVariants}>
-                <div className="text-4xl md:text-5xl font-bold mb-2 text-primary">
-                  {stat.number}
-                </div>
-                <p className="text-gray-300">{stat.label}</p>
-              </motion.div>
-            ))}
+            <div className={`pt-2 ${isUpcoming ? 'opacity-60' : ''}`}>
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-semibold text-lg text-foreground">{item.title}</h3>
+                {isDone && (
+                  <div className="flex items-center justify-center size-6 rounded-full bg-primary/10 text-primary">
+                    <FiCheck className="w-4 h-4 text-primary" />
+                  </div>
+                )}
+                {isCurrent && (
+                  <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                    Current
+                  </span>
+                )}
+              </div>
+              <p className="text-muted-foreground text-sm leading-6">{item.description}</p>
+            </div>
           </motion.div>
-        </div>
-      </section>
+        );
+      })}
+    </motion.div>
+  </div>
+</section>
 
       {/* CTA Section */}
-      <section className="py-20 md:py-24 px-4">
+      <section className="py-20 px-4 border-t border-border">
         <div className="max-w-2xl mx-auto text-center space-y-6">
-          <h2 className="text-4xl font-bold">Ready to Join Our Community?</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground">Want to See It in Action?</h2>
           <p className="text-muted-foreground text-lg">
-            Whether you&apos;re a fashion enthusiast or a seller, FashionHub has something for you.
+            Browse the marketplace or reach out if you have questions about the project.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/register"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-white rounded-lg hover:opacity-90 transition font-semibold"
-            >
-              Get Started <FiArrowRight className="w-5 h-5" />
-            </Link>
+            {!isLoggedIn && (
+              <Link
+                href="/register"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors duration-300 font-semibold"
+              >
+                Create an Account <FiArrowRight className="w-5 h-5" />
+              </Link>
+            )}
+            {isLoggedIn && (
+              <Link
+                href={dashboardHref}
+                className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors duration-300 font-semibold"
+              >
+                Go to Your Dashboard
+              </Link>
+            )}
             <Link
               href="/shop"
-              className="inline-flex items-center gap-2 px-8 py-4 border border-border rounded-lg hover:bg-secondary transition font-semibold"
+              className="group flex items-center justify-center gap-2 px-8 py-4 text-foreground font-bold rounded-lg hover:bg-muted/60 transition-colors duration-300"
             >
-              Shop Now
+              Browse Products    <FiArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
             </Link>
           </div>
         </div>

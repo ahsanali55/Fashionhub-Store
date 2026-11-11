@@ -3,6 +3,7 @@ import User from "../models/user.model";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
+import { createNotification } from "../utils/notificationHelper";
 
 // Admin Supplier Approval Controllers
 
@@ -41,8 +42,16 @@ export const approveSupplier = asyncHandler(
       throw new ApiError(404, "Supplier not found");
     }
 
+    const alreadyApproved = supplier.status === "approved";
     supplier.status = "approved";
     await supplier.save();
+    if (!alreadyApproved) {
+      await createNotification(
+        supplier._id.toString(),
+        "Your supplier account has been approved. You can now list products and manage your store.",
+        "SUPPLIER_APPROVED",
+      );
+    }
 
     return res
       .status(200)
@@ -59,8 +68,16 @@ export const rejectSupplier = asyncHandler(
       throw new ApiError(404, "Supplier not found");
     }
 
+    const alreadyRejected = supplier.status === "rejected";
     supplier.status = "rejected";
     await supplier.save();
+    if (!alreadyRejected) {
+      await createNotification(
+        supplier._id.toString(),
+        "Your supplier application was not approved. Contact the store administrator if you need more information.",
+        "SUPPLIER_REJECTED",
+      );
+    }
 
     return res
       .status(200)
@@ -92,6 +109,16 @@ export const suspendOrActivateUser = asyncHandler(async (req: Request, res: Resp
 
   if (!user) {
     throw new ApiError(404, "User not found");
+  }
+
+  if (user.role === "supplier") {
+    await createNotification(
+      user._id.toString(),
+      isActive
+        ? "Your supplier account has been reactivated. Your eligible products are available in the marketplace again."
+        : "Your supplier account has been suspended. You can no longer list products or sell existing listings.",
+      isActive ? "SUPPLIER_REACTIVATED" : "SUPPLIER_SUSPENDED",
+    );
   }
 
   return res.status(200).json(

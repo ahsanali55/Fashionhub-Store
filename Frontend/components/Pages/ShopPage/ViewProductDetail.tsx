@@ -15,9 +15,19 @@ import {
 
 import { RootState } from '@/redux/store';
 import { addToCart } from '@/redux/slices/cartSlice';
-import { addToWishlist } from '@/redux/slices/wishlistSlice';
+import { addToWishlist, removeFromWishlist } from '@/redux/slices/wishlistSlice';
 import { useAppDispatch, useAppSelector } from '@/hooks/redux';
-
+import { formatPrice } from '@/lib/utils';
+import { ProductCard } from './ProductCard';
+import { useEffect, useRef, useState } from 'react';
+import { loadProducts } from '@/redux/slices/productsSlice';
+import type { Product } from '@/redux/slices/productsSlice';
+import {
+  createProductReview,
+  getMyOrders,
+  getProductReviews,
+  type Review,
+} from '@/services/commerce.services';
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -54,7 +64,99 @@ export default function ViewProductDetailPage() {
   const product = products.items.find(
     (item) => item.id === id
   );
+  const [isAdded, setIsAdded] = useState(false);
+  const addedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wishlistItems = useAppSelector(
+    (state) => state.wishlist.items
+  );
+  const auth = useAppSelector((state) => state.auth);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(true);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewError, setReviewError] = useState('');
+  const [reviewSuccess, setReviewSuccess] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [canReview, setCanReview] = useState(false);
+  const [isCheckingReviewEligibility, setIsCheckingReviewEligibility] = useState(false);
 
+  useEffect(() => {
+    let active = true;
+    getProductReviews(id)
+      .then((data) => { if (active) setReviews(data); })
+      .catch((error: unknown) => {
+        if (active) setReviewError(error instanceof Error ? error.message : 'Unable to load reviews.');
+      })
+      .finally(() => { if (active) setIsLoadingReviews(false); });
+    return () => { active = false; };
+  }, [id]);
+
+  useEffect(() => {
+    if (auth.user?.role !== 'customer') {
+      setCanReview(false);
+      setIsCheckingReviewEligibility(false);
+      return;
+    }
+
+    let active = true;
+    setCanReview(false);
+    setIsCheckingReviewEligibility(true);
+    getMyOrders()
+      .then((orders) => {
+        if (!active) return;
+        setCanReview(orders.some((order) => order.items.some((item) => {
+          return item.productId === id && item.status === 'delivered';
+        })));
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setReviewError(error instanceof Error ? error.message : 'Unable to verify your purchase.');
+        }
+      })
+      .finally(() => {
+        if (active) setIsCheckingReviewEligibility(false);
+      });
+    return () => { active = false; };
+  }, [auth.user?.id, auth.user?.role, id]);
+
+  const hasReviewed = reviews.some((review) =>
+    typeof review.userId === 'string'
+      ? review.userId === auth.user?.id
+      : review.userId._id === auth.user?.id,
+  );
+  const averageReviewRating = reviews.length
+    ? reviews.reduce((total, review) => total + review.rating, 0) / reviews.length
+    : 0;
+  const reviewDistribution = [5, 4, 3, 2, 1].map((rating) => ({
+    rating,
+    count: reviews.filter((review) => review.rating === rating).length,
+  }));
+
+  const handleReviewSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (auth.user?.role !== 'customer') return;
+    setIsSubmittingReview(true);
+    setReviewError('');
+    setReviewSuccess('');
+    try {
+      const review = await createProductReview(id, {
+        rating: reviewRating,
+        comment: reviewComment.trim(),
+      });
+      setReviews((current) => [review, ...current]);
+      setReviewComment('');
+      setReviewSuccess('Your review has been submitted.');
+      void dispatch(loadProducts());
+    } catch (error) {
+      setReviewError(error instanceof Error ? error.message : 'Unable to submit your review.');
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  const isWishlisted = wishlistItems.some(
+    (i) => i.id === product?.id
+  );
   if (!product) {
     return (
       <main className="min-h-screen bg-background flex items-center justify-center">
@@ -79,11 +181,11 @@ export default function ViewProductDetailPage() {
     );
   }
 
-  const handleAddToCart = () => {
-    dispatch(addToCart(product));
+  const handleAddToCart = (product: Product) => {
+    dispatch(addToCart({ ...product, quantity: 1 }));
   };
 
-  const handleAddToWishlist = () => {
+  const handleAddToWishlist = (product: Product) => {
     dispatch(addToWishlist(product));
   };
 
@@ -180,7 +282,14 @@ export default function ViewProductDetailPage() {
 
             {/* Wishlist */}
             <button
-              onClick={handleAddToWishlist}
+              onClick={() => {
+                if (isWishlisted) {
+                  dispatch(removeFromWishlist(product.id));
+                }
+                else {
+                  handleAddToWishlist(product);
+                }
+              }}
               aria-label="Add to wishlist"
               className="
                 absolute
@@ -196,9 +305,13 @@ export default function ViewProductDetailPage() {
                 text-foreground
                 hover:text-primary
                 transition
+                cursor-pointer
               "
             >
-              <FiHeart size={19} />
+              <FiHeart
+                size={18}
+                className={isWishlisted ? 'fill-primary text-primary' : ''}
+              />
             </button>
           </motion.div>
 
@@ -261,7 +374,7 @@ export default function ViewProductDetailPage() {
 
             {/* Price */}
             <p className="text-3xl font-bold mb-7">
-              ${product.price.toFixed(2)}
+              {formatPrice(product.price)}
             </p>
 
             {/* Description */}
@@ -322,51 +435,54 @@ export default function ViewProductDetailPage() {
               <motion.button
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={handleAddToCart}
+                onClick={() => {
+                 
+                  handleAddToCart(product) 
+                  setIsAdded(true);
+                  if (addedTimeoutRef.current) {
+                clearTimeout(addedTimeoutRef.current);
+              }
+                 addedTimeoutRef.current = setTimeout(() => {
+                setIsAdded(false);
+              }, 2000);
+                }
+                }              
                 disabled={!product.inStock}
-                className="
+                className={`
                   flex-1
                   h-12
                   rounded-lg
-                  bg-primary
                   text-white
                   font-semibold
                   text-sm
                   flex
                   items-center
+                  cursor-pointer
                   justify-center
-                  gap-2
-                  hover:bg-orange-600
+                  gap-2         
                   transition
                   disabled:opacity-50
                   disabled:cursor-not-allowed
-                "
+                  ${isAdded
+                    ? 'bg-orange-600'
+                    : 'bg-orange-500 hover:bg-orange-600'
+                  }
+                `}
               >
-                <FiShoppingBag size={17} />
-                {product.inStock ? 'Add to Cart' : 'Sold Out'}
+                {isAdded ? (
+                  <>
+                    <span className="flex items-center justify-center w-4 h-4 rounded-full border border-current text-[10px]">
+                      ✓
+                    </span>
+                    Added to Cart
+                  </>
+                ) : (
+                  <>
+                    <FiShoppingBag size={16} />
+                    Add to Cart
+                  </>
+                )}
               </motion.button>
-
-              <motion.button
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleAddToWishlist}
-                className="
-                  w-12
-                  h-12
-                  rounded-lg
-                  border
-                  border-border
-                  flex
-                  items-center
-                  justify-center
-                  hover:text-primary
-                  hover:border-primary
-                  transition
-                "
-              >
-                <FiHeart size={18} />
-              </motion.button>
-
             </div>
 
             {/* Supplier */}
@@ -400,6 +516,156 @@ export default function ViewProductDetailPage() {
           </motion.div>
 
         </motion.section>
+
+        <section className="mt-16 border-t border-border pt-10 sm:mt-20">
+          <div className="mb-7 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">From our customers</p>
+              <h2 className="mt-2 text-2xl font-bold sm:text-3xl">Reviews & ratings</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Only customers with a delivered order can leave a review.</p>
+            </div>
+            {reviews.length > 0 && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <FiStar className="h-4 w-4 fill-amber-400 text-amber-400" />
+                <span className="font-semibold text-foreground">{averageReviewRating.toFixed(1)}</span>
+                <span>from {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}</span>
+              </div>
+            )}
+          </div>
+
+          {reviewError && <p role="alert" className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{reviewError}</p>}
+          {auth.user?.role === 'customer' && isCheckingReviewEligibility && (
+            <p className="mb-6 text-sm text-muted-foreground">Checking your order history…</p>
+          )}
+          {auth.user?.role === 'customer' && !isCheckingReviewEligibility && canReview && !hasReviewed && (
+            <form onSubmit={handleReviewSubmit} className="mb-8 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+              <div className="mb-5">
+                <h3 className="font-semibold">Share your experience</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Your feedback helps other shoppers make a confident choice.</p>
+              </div>
+              <fieldset className="mb-5">
+                <legend className="mb-2 text-sm font-medium">Your rating</legend>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <button
+                      key={rating}
+                      type="button"
+                      aria-pressed={reviewRating === rating}
+                      aria-label={`${rating} ${rating === 1 ? 'star' : 'stars'}`}
+                      onClick={() => setReviewRating(rating)}
+                      className="rounded-md p-1 transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    >
+                      <FiStar className={`h-7 w-7 ${rating <= reviewRating ? 'fill-amber-400 text-amber-500' : 'text-muted-foreground/40'}`} />
+                    </button>
+                  ))}
+                  <span className="ml-2 text-sm font-medium text-muted-foreground">
+                    {reviewRating === 5 ? 'Excellent' : reviewRating === 4 ? 'Very good' : reviewRating === 3 ? 'Good' : reviewRating === 2 ? 'Fair' : 'Needs improvement'}
+                  </span>
+                </div>
+              </fieldset>
+              <label className="block text-sm font-medium">
+                Your review
+                <textarea
+                  value={reviewComment}
+                  onChange={(event) => setReviewComment(event.target.value)}
+                  required
+                  rows={4}
+                  maxLength={1000}
+                  placeholder="What did you like or think could be better?"
+                  className="mt-2 block w-full resize-y rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/15"
+                />
+              </label>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span className="text-xs text-muted-foreground">{reviewComment.length}/1000</span>
+                <button
+                  type="submit"
+                  disabled={isSubmittingReview || !reviewComment.trim()}
+                  className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isSubmittingReview ? 'Submitting review…' : 'Submit review'}
+                </button>
+              </div>
+              {reviewSuccess && <p role="status" className="mt-3 text-sm text-green-700">{reviewSuccess}</p>}
+            </form>
+          )}
+          {auth.user?.role === 'customer' && !isCheckingReviewEligibility && !canReview && (
+            <p className="mb-6 rounded-xl border border-border bg-secondary/50 p-4 text-sm text-muted-foreground">
+              Reviews unlock after an order containing this product has been delivered.
+            </p>
+          )}
+          {auth.user?.role === 'customer' && !isCheckingReviewEligibility && canReview && hasReviewed && (
+            <p className="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">Thanks for sharing your feedback. You have already reviewed this product.</p>
+          )}
+          {auth.user?.role !== 'customer' && (
+            <p className="mb-6 rounded-xl border border-border bg-secondary/50 p-4 text-sm text-muted-foreground">Sign in as a customer to leave a review. Reviews are enabled after delivery.</p>
+          )}
+          {isLoadingReviews ? (
+            <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">Loading customer reviews…</div>
+          ) : reviews.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-card px-6 py-10 text-center">
+              <FiStar className="mx-auto h-8 w-8 text-amber-400" />
+              <h3 className="mt-3 font-semibold">Be the first to review</h3>
+              <p className="mt-1 text-sm text-muted-foreground">There are no customer reviews for this product yet.</p>
+            </div>
+          ) : (
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+              <aside className="h-fit rounded-2xl border border-border bg-card p-5 shadow-sm">
+                <div className="mb-5 flex items-end gap-2">
+                  <span className="text-5xl font-bold tracking-tight">{averageReviewRating.toFixed(1)}</span>
+                  <span className="pb-1 text-sm text-muted-foreground">out of 5</span>
+                </div>
+                <div className="mb-5 flex gap-1" aria-label={`${averageReviewRating.toFixed(1)} out of 5 stars`}>
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <FiStar key={rating} className={`h-4 w-4 ${rating <= Math.round(averageReviewRating) ? 'fill-amber-400 text-amber-500' : 'text-muted-foreground/30'}`} />
+                  ))}
+                </div>
+                <p className="mb-4 text-xs text-muted-foreground">{reviews.length} verified {reviews.length === 1 ? 'review' : 'reviews'}</p>
+                <div className="space-y-2.5">
+                  {reviewDistribution.map(({ rating, count }) => (
+                    <div key={rating} className="flex items-center gap-2 text-xs">
+                      <span className="w-3 text-muted-foreground">{rating}</span>
+                      <FiStar className="h-3 w-3 fill-amber-400 text-amber-500" />
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
+                        <div
+                          className="h-full rounded-full bg-amber-400"
+                          style={{ width: `${reviews.length ? (count / reviews.length) * 100 : 0}%` }}
+                        />
+                      </div>
+                      <span className="w-5 text-right text-muted-foreground">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              </aside>
+              <div className="space-y-3">
+                {reviews.map((review) => (
+                  <article key={review._id} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                          {(typeof review.userId === 'string' ? 'C' : review.userId.fullName.trim().charAt(0).toUpperCase()) || 'C'}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">
+                            {typeof review.userId === 'string' ? 'Customer' : review.userId.fullName}
+                          </p>
+                          <time className="mt-0.5 block text-xs text-muted-foreground">
+                            {new Date(review.createdAt).toLocaleDateString()}
+                          </time>
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                        <FiStar className="h-3 w-3 fill-amber-400 text-amber-500" />
+                        {review.rating}.0
+                      </div>
+                    </div>
+                    <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-foreground/85">{review.comment}</p>
+                    <p className="mt-4 border-t border-border pt-3 text-[11px] font-medium text-green-700">Verified purchase</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
 
 
         {/* ================= RELATED PRODUCTS ================= */}
@@ -480,226 +746,14 @@ export default function ViewProductDetailPage() {
 
               {relatedProducts.map((item) => {
 
-                const outOfStock = !item.inStock;
+
 
                 return (
-                  <motion.article
-                    key={item.id}
-                    variants={itemVariants}
-                    whileHover={{ y: -4 }}
-                    transition={{ duration: 0.2 }}
-                    className="group"
-                  >
-
-                    {/* Image */}
-                    <div
-                      className="
-                        relative
-                        aspect-[4/5]
-                        overflow-hidden
-                        rounded-xl
-                        bg-muted
-                      "
-                    >
-
-                      <Link href={`/product/${item.id}`}>
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="
-                            w-full
-                            h-full
-                            object-cover
-                            transition-transform
-                            duration-500
-                            group-hover:scale-105
-                          "
-                        />
-                      </Link>
-
-
-                      {/* Badge */}
-                      {outOfStock && (
-                        <span
-                          className="
-                            absolute
-                            top-3
-                            left-3
-                            px-2.5
-                            py-1
-                            rounded-full
-                            bg-foreground
-                            text-white
-                            text-[11px]
-                            font-bold
-                          "
-                        >
-                          SOLD OUT
-                        </span>
-                      )}
-
-
-                      {/* Wishlist */}
-                      <button
-                        onClick={() =>
-                          dispatch(addToWishlist(item))
-                        }
-                        aria-label="Add to wishlist"
-                        className="
-                          absolute
-                          top-3
-                          right-3
-                          w-10
-                          h-10
-                          rounded-full
-                          bg-white/95
-                          flex
-                          items-center
-                          justify-center
-                          text-foreground
-                          hover:text-primary
-                          transition
-                        "
-                      >
-                        <FiHeart size={18} />
-                      </button>
-
-
-                      {/* Quick Add */}
-                      {!outOfStock && (
-                        <button
-                          onClick={() =>
-                            dispatch(addToCart(item))
-                          }
-                          className="
-                            absolute
-                            bottom-3
-                            left-3
-                            right-3
-                            h-11
-                            rounded-lg
-                            bg-white
-                            text-foreground
-                            font-semibold
-                            text-sm
-                            flex
-                            items-center
-                            justify-center
-                            gap-2
-                            opacity-0
-                            translate-y-2
-                            group-hover:opacity-100
-                            group-hover:translate-y-0
-                            transition-all
-                            duration-300
-                            shadow-lg
-                          "
-                        >
-                          <FiShoppingBag size={16} />
-                          Add to Cart
-                        </button>
-                      )}
-
-                    </div>
-
-
-                    {/* Information */}
-                    <div className="pt-4">
-
-                      <p
-                        className="
-                          text-xs
-                          font-semibold
-                          uppercase
-                          tracking-wider
-                          text-muted-foreground
-                          mb-1
-                        "
-                      >
-                        {item.supplier}
-                      </p>
-
-                      <div className="flex items-start justify-between gap-3">
-
-                        <Link
-                          href={`/product/${item.id}`}
-                          className="min-w-0"
-                        >
-                          <h3
-                            className="
-                              font-semibold
-                              text-sm
-                              md:text-base
-                              truncate
-                              hover:text-primary
-                              transition
-                            "
-                          >
-                            {item.name}
-                          </h3>
-                        </Link>
-
-                        <span
-                          className="
-                            text-sm
-                            font-bold
-                            shrink-0
-                          "
-                        >
-                          ${item.price.toFixed(2)}
-                        </span>
-
-                      </div>
-
-
-                      {/* Category + Rating */}
-                      <div
-                        className="
-                          flex
-                          items-center
-                          justify-between
-                          mt-2
-                        "
-                      >
-
-                        <span className="text-xs text-muted-foreground">
-                          {item.category}
-                        </span>
-
-                        <span className="text-xs font-medium">
-                          ★ {item.rating.toFixed(1)}
-                          <span className="text-muted-foreground">
-                            {' '}
-                            ({item.reviews})
-                          </span>
-                        </span>
-
-                      </div>
-
-
-                      {/* View details */}
-                      <Link
-                        href={`/product/${item.id}`}
-                        className="
-                          inline-flex
-                          items-center
-                          gap-1
-                          mt-3
-                          text-xs
-                          font-semibold
-                          text-primary
-                          opacity-0
-                          group-hover:opacity-100
-                          transition
-                        "
-                      >
-                        View details
-                        <FiArrowUpRight size={13} />
-                      </Link>
-
-                    </div>
-
-                  </motion.article>
+                  <ProductCard key={item.id} product={item}
+                    onAddToCart={() => dispatch(addToCart({ ...item, quantity: 1, })
+                    )}
+                    onAddToWishlist={() => handleAddToWishlist(item)}
+                  />
                 );
               })}
 

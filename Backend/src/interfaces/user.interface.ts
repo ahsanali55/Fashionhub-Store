@@ -6,12 +6,13 @@ export interface IUser extends Document {
   fullName: string;
   email: string;
   password: string;
+  recoveryQuestion?: string | null;
+  recoveryAnswerHash?: string | null;
   role: UserRole;
   status: "pending" | "approved" | "rejected";
   isActive: boolean;
+  notificationsEnabled: boolean;
   refreshToken?: string | null;
-  passwordResetToken?: string | null;
-  passwordResetExpires?: Date | null;
   avatar?: string;
   isVerified: boolean;
   createdAt: Date;

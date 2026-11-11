@@ -18,22 +18,15 @@ export default function AuthProvider({
   const dispatch = useAppDispatch();
   const [authChecked, setAuthChecked] = useState(false);
 
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
-
   useEffect(() => {
     if (authChecked) {
-      return;
-    }
-
-    if (isAuthenticated) {
-      setAuthChecked(true);
       return;
     }
 
     dispatch(fetchCurrentUser())
       .catch(() => undefined)
       .finally(() => setAuthChecked(true));
-  }, [authChecked, dispatch, isAuthenticated]);
+  }, [authChecked, dispatch]);
 
   if (!authChecked) {
     return null;

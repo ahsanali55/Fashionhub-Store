@@ -14,6 +14,9 @@ import { ProductCard } from '@/components/Pages/ShopPage/ProductCard';
 import { RootState } from '@/redux/store';
 import { useAppSelector } from '@/hooks/redux';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { addToCart } from '@/redux/slices/cartSlice';
+import { addToWishlist } from '@/redux/slices/wishlistSlice';
+import { useAppDispatch } from '@/hooks/redux';
 const PRODUCTS_PER_PAGE = 8;
 
 const containerVariants = {
@@ -44,26 +47,30 @@ export default function ShopPage() {
   const products = useAppSelector((state: RootState) => state.products);
   const router = useRouter();
   const searchParams = useSearchParams();
-
+  const categoryFromUrl = searchParams.get('category');
   const [searchTerm, setSearchTerm] = useState(
     searchParams.get('search') || ''
   );
-  
-  const [selectedCategory, setSelectedCategory] = useState('all');
+
+  const [selectedCategory, setSelectedCategory] = useState(categoryFromUrl || 'All');
   const [sortBy, setSortBy] = useState('newest');
   const [priceRange, setPriceRange] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [sortOpen, setSortOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
+  const [FilterOpen, setFilterOpen] = useState(false);
+  const dispatch = useAppDispatch();
   useEffect(() => {
-        setSearchTerm(searchParams.get('search') || '');
-      }, [searchParams]);
+    setSearchTerm(searchParams.get('search') || '');
+  }, [searchParams]);
   const categories = [
     { label: 'All', value: 'all' },
-    { label: 'Jackets', value: 'jackets' },
-    { label: 'Dresses', value: 'dresses' },
-    { label: 'Shoes', value: 'shoes' },
-    { label: 'Accessories', value: 'accessories' },
-    { label: 'Shirts', value: 'shirts' },
+    ...Array.from(
+      new Map(
+        products.items.map((product) => [
+          product.category.toLowerCase(),
+          product.category,
+        ]),
+      ),
+    ).map(([value, label]) => ({ label, value })),
   ];
 
   const sortOptions = [
@@ -75,10 +82,11 @@ export default function ShopPage() {
 
   const priceOptions = [
     { label: 'All Prices', value: 'all' },
-    { label: 'Under $75', value: 'under-75' },
-    { label: '$75 – $125', value: '75-125' },
-    { label: '$125 – $175', value: '125-175' },
-    { label: '$175+', value: '175-plus' },
+    { label: 'Under PKR 5,000', value: 'under-5000' },
+    { label: 'PKR 5,000 – 10,000', value: '5000-10000' },
+    { label: 'PKR 10,000 – 20,000', value: '10000-20000' },
+    { label: 'PKR 20,000 – 30,000', value: '20000-30000' },
+    { label: 'PKR 30,000+', value: '30000-plus' },
   ];
 
   /*
@@ -115,20 +123,30 @@ export default function ShopPage() {
       let matchesPrice = true;
 
       switch (priceRange) {
-        case 'under-75':
-          matchesPrice = product.price < 75;
+        case 'under-5000':
+          matchesPrice = product.price < 5000;
           break;
 
-        case '75-125':
-          matchesPrice = product.price >= 75 && product.price <= 125;
+        case '5000-10000':
+          matchesPrice =
+            product.price >= 5000 &&
+            product.price <= 10000;
           break;
 
-        case '125-175':
-          matchesPrice = product.price > 125 && product.price <= 175;
+        case '10000-20000':
+          matchesPrice =
+            product.price > 10000 &&
+            product.price <= 20000;
           break;
 
-        case '175-plus':
-          matchesPrice = product.price > 175;
+        case '20000-30000':
+          matchesPrice =
+            product.price > 20000 &&
+            product.price <= 30000;
+          break;
+
+        case '30000-plus':
+          matchesPrice = product.price > 30000;
           break;
 
         default:
@@ -187,13 +205,40 @@ export default function ShopPage() {
    */
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
-    setCurrentPage(1);
+
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (value.trim()) {
+      params.set('search', value);
+    } else {
+      params.delete('search');
+    }
+
+    params.delete('page');
+
+    router.replace(`/shop?${params.toString()}`, {
+      scroll: false,
+    });
   };
 
   const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category);
     setCurrentPage(1);
+
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (category !== 'all') {
+      params.set('category', category);
+    } else {
+      params.delete('category');
+    }
+
+    params.delete('page');
+
+    router.replace(`/shop?${params.toString()}`, { scroll: false });
   };
+  useEffect(() => {
+    setSelectedCategory(categoryFromUrl || 'all');
+  }, [categoryFromUrl]);
 
   const handlePriceChange = (price: string) => {
     setPriceRange(price);
@@ -202,7 +247,7 @@ export default function ShopPage() {
 
   const handleSortChange = (sort: string) => {
     setSortBy(sort);
-    setSortOpen(false);
+    setFilterOpen(false);
     setCurrentPage(1);
   };
 
@@ -215,7 +260,17 @@ export default function ShopPage() {
     setPriceRange('all');
     setSortBy('newest');
     setCurrentPage(1);
+    router.replace(`/shop`, { scroll: false });
   };
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (currentPage > 1) {
+      params.set('page', currentPage.toString());
+    } else {
+      params.delete('page');
+    }
+    router.replace(`/shop?${params.toString()}`, { scroll: false });
+  }, [currentPage]);
 
   const currentSortLabel =
     sortOptions.find((option) => option.value === sortBy)?.label ||
@@ -262,21 +317,7 @@ export default function ShopPage() {
               value={searchTerm}
               onChange={(e) => {
                 const value = e.target.value;
-                setSearchTerm(value);
-
-                const params = new URLSearchParams(searchParams.toString());
-
-                if (value.trim()) {
-                  params.set('search', value);
-                } else {
-                  params.delete('search');
-                }
-
-                params.delete('page');
-
-                router.replace(`/shop?${params.toString()}`, {
-                  scroll: false,
-                });
+                handleSearchChange(value);
               }}
               className="
                 w-full
@@ -299,151 +340,282 @@ export default function ShopPage() {
         </motion.div>
 
         {/* ================= FILTER BAR ================= */}
-        <div className="flex flex-col gap-5 mb-10">
+   <div className="mb-10">
+  <div className="flex flex-col gap-4">
 
-          {/* Categories */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <FiFilter size={16} />
-              <span className="text-sm font-semibold">
-                Category
-              </span>
-            </div>
+    {/* Top row */}
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <button
-                  key={category.value}
-                  onClick={() =>
-                    handleCategoryChange(category.value)
-                  }
-                  className={`
-                    px-4
-                    py-2
-                    rounded-full
-                    text-sm
-                    font-medium
-                    transition
-                    border
-                    ${selectedCategory === category.value
-                      ? 'bg-primary text-white border-primary'
-                      : 'bg-card border-border hover:border-primary hover:text-primary'
-                    }
-                  `}
-                >
-                  {category.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Price + Sort */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-
-            {/* Price */}
-            <div className="flex flex-wrap gap-2">
-              {priceOptions.map((price) => (
-                <button
-                  key={price.value}
-                  onClick={() =>
-                    handlePriceChange(price.value)
-                  }
-                  className={`
-                    px-3
-                    py-2
-                    rounded-lg
-                    text-sm
-                    transition
-                    border
-                    ${priceRange === price.value
-                      ? 'border-primary text-primary bg-primary/5'
-                      : 'border-border bg-card hover:border-primary'
-                    }
-                  `}
-                >
-                  {price.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Custom Sort Dropdown */}
-            <div className="relative shrink-0">
-              <button
-                onClick={() => setSortOpen(!sortOpen)}
-                className="
-                  h-10
-                  min-w-[190px]
-                  px-4
-                  rounded-lg
-                  border
-                  border-border
-                  bg-card
-                  flex
-                  items-center
-                  justify-between
-                  gap-3
-                  text-sm
-                  font-medium
-                  hover:border-primary
-                  transition
-                "
-              >
-                <span>{currentSortLabel}</span>
-
-                <FiChevronDown
-                  className={`transition-transform ${sortOpen ? 'rotate-180' : ''
-                    }`}
-                />
-              </button>
-
-              {sortOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="
-                    absolute
-                    right-0
-                    top-12
-                    z-30
-                    w-full
-                    min-w-[190px]
-                    rounded-lg
-                    border
-                    border-border
-                    bg-card
-                    shadow-lg
-                    overflow-hidden
-                  "
-                >
-                  {sortOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() =>
-                        handleSortChange(option.value)
-                      }
-                      className={`
-                        w-full
-                        px-4
-                        py-2.5
-                        text-left
-                        text-sm
-                        transition
-                        ${sortBy === option.value
-                          ? 'bg-primary/10 text-primary font-semibold'
-                          : 'hover:bg-muted'
-                        }
-                      `}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </div>
-          </div>
+      {/* Categories */}
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 mb-3">
+          <FiFilter size={16} />
+          <span className="text-sm font-semibold">
+            Category
+          </span>
         </div>
 
+        {/* Mobile = horizontal scroll | Desktop = wrap */}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide sm:flex-wrap sm:overflow-visible">
+          {categories.map((category) => (
+            <button
+              key={category.value}
+              onClick={() =>
+                handleCategoryChange(category.value)
+              }
+              className={`
+                shrink-0
+                px-4
+                py-2
+                rounded-full
+                text-sm
+                font-medium
+                transition
+                cursor-pointer
+                border
+                whitespace-nowrap
+
+                ${
+                  selectedCategory === category.value
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-card border-border hover:border-primary hover:text-primary'
+                }
+              `}
+            >
+              {category.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="relative shrink-0 self-end sm:self-auto">
+
+        <button
+          onClick={() => setFilterOpen(!FilterOpen)}
+          className="
+            h-11
+            px-4
+            rounded-xl
+            border
+            border-border
+            bg-card
+            flex
+            items-center
+            gap-2.5
+            text-sm
+            font-semibold
+            hover:border-primary/50
+            transition
+            cursor-pointer
+          "
+        >
+          <FiFilter size={17} />
+
+          <span>Filters</span>
+
+          {/* Active indicator */}
+          {(priceRange !== 'all' || sortBy !== 'newest') && (
+            <span className="w-2 h-2 rounded-full bg-primary" />
+          )}
+
+          <FiChevronDown
+            size={15}
+            className={`
+              transition-transform
+              ${FilterOpen ? 'rotate-180' : ''}
+            `}
+          />
+        </button>
+
+        {/* Filter Popup */}
+        {FilterOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.15 }}
+            className="
+              absolute
+              right-0
+              top-14
+              z-40
+
+              w-[calc(100vw-2rem)]
+              max-w-sm
+
+              sm:w-80
+
+              rounded-2xl
+              border
+              border-border
+              bg-card
+              shadow-xl
+              overflow-hidden
+            "
+          >
+
+            {/* Popup content */}
+            <div className="p-5">
+
+              {/* Price */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-semibold">
+                    Price
+                  </span>
+
+                  {priceRange !== 'all' && (
+                    <button
+                      onClick={() => handlePriceChange('all')}
+                      className="
+                        text-xs
+                        text-primary
+                        hover:underline
+                      "
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  {priceOptions.map((price) => {
+                    const isActive =
+                      priceRange === price.value;
+
+                    return (
+                      <button
+                        key={price.value}
+                        onClick={() =>
+                          handlePriceChange(price.value)
+                        }
+                        className={`
+                          w-full
+                          flex
+                          items-center
+                          justify-between
+                          px-3
+                          py-2.5
+                          rounded-lg
+                          text-sm
+                          text-left
+                          transition
+
+                          ${
+                            isActive
+                              ? 'bg-primary/10 text-primary font-semibold'
+                              : 'hover:bg-muted text-foreground'
+                          }
+                        `}
+                      >
+                        <span>{price.label}</span>
+
+                        {isActive && (
+                          <span className="w-2 h-2 rounded-full bg-primary" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-border my-5" />
+
+              {/* Sort */}
+              <div>
+                <span className="text-sm font-semibold block mb-3">
+                  Sort by
+                </span>
+
+                <div className="space-y-1">
+                  {sortOptions.map((option) => {
+                    const isActive =
+                      sortBy === option.value;
+
+                    return (
+                      <button
+                        key={option.value}
+                        onClick={() =>
+                          handleSortChange(option.value)
+                        }
+                        className={`
+                          w-full
+                          flex
+                          items-center
+                          justify-between
+                          px-3
+                          py-2.5
+                          rounded-lg
+                          text-sm
+                          text-left
+                          transition
+
+                          ${
+                            isActive
+                              ? 'bg-primary/10 text-primary font-semibold'
+                              : 'hover:bg-muted text-foreground'
+                          }
+                        `}
+                      >
+                        <span>{option.label}</span>
+
+                        {isActive && (
+                          <span className="w-2 h-2 rounded-full bg-primary" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Clear filters */}
+            {(priceRange !== 'all' || sortBy !== 'newest') && (
+              <div className="border-t border-border">
+                <button
+                  onClick={() => {
+                    setPriceRange('all');
+                    setSortBy('newest');
+                    setFilterOpen(false);
+                  }}
+                  className="
+                    w-full
+                    px-5
+                    py-3.5
+                    text-sm
+                    font-semibold
+                    text-muted-foreground
+                    hover:text-primary
+                    hover:bg-muted
+                    transition
+                  "
+                >
+                  Clear all filters
+                </button>
+              </div>
+            )}
+
+          </motion.div>
+        )}
+      </div>
+
+    </div>
+  </div>
+</div>
+
         {/* ================= RESULT INFO ================= */}
+        {products.loading && (
+          <p role="status" className="mb-6 text-sm text-muted-foreground">
+            Loading products...
+          </p>
+        )}
+        {products.error && (
+          <p role="alert" className="mb-6 text-sm text-destructive">
+            Unable to load products: {products.error}
+          </p>
+        )}
         <div className="flex items-center justify-between mb-6">
           <p className="text-sm text-muted-foreground">
             Showing{' '}
@@ -489,7 +661,12 @@ export default function ShopPage() {
                 key={product.id}
                 variants={itemVariants}
               >
-                <ProductCard product={product} />
+                <ProductCard
+                  product={product}
+                  onAddToCart={() => dispatch(addToCart({ ...product, quantity: 1, })
+                  )}
+                  onAddToWishlist={() => dispatch(addToWishlist(product))}
+                />
               </motion.div>
             ))}
           </motion.div>

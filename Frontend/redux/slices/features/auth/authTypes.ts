@@ -5,6 +5,8 @@ export interface AuthUser {
   fullName: string;
   email: string;
   role: UserRole;
+  avatar?: string;
+  notificationsEnabled?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -14,4 +16,5 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+   avatarPreview: string | null;
 }

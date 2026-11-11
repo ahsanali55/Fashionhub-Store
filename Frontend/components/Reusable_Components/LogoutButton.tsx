@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '@/redux/slices/features/auth/authSlice';
+import { useAppDispatch } from '@/hooks/redux';
 import { RootState } from '@/redux/store';
 
 import { motion } from 'framer-motion';
@@ -14,7 +15,7 @@ interface LogoutButtonProps {
 
 export function LogoutButton({ variant = 'button', className = '' }: LogoutButtonProps) {
   const router = useRouter();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   const handleLogout = () => {
     // Clear localStorage
@@ -34,7 +35,7 @@ export function LogoutButton({ variant = 'button', className = '' }: LogoutButto
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         onClick={handleLogout}
-        className={`p-2 text-muted-foreground hover:text-foreground transition ${className}`}
+        className={`p-2 text-muted-foreground hover:text-foreground transition ${className} cursor-pointer`}
         title="Logout"
       >
         Logout
@@ -48,7 +49,7 @@ export function LogoutButton({ variant = 'button', className = '' }: LogoutButto
         whileHover={{ backgroundColor: 'rgb(239, 68, 68)' }}
         whileTap={{ scale: 0.95 }}
         onClick={handleLogout}
-        className={`flex items-center gap-2 px-4 py-2 bg-destructive text-white rounded-lg hover:opacity-90 transition ${className}`}
+        className={`flex items-center gap-2 px-4 py-2 bg-destructive text-white rounded-lg hover:opacity-90 transition ${className} cursor-pointer`}
       >
         <span>Logout</span>
       </motion.button>
@@ -60,7 +61,7 @@ export function LogoutButton({ variant = 'button', className = '' }: LogoutButto
       whileHover={{ backgroundColor: 'rgba(0,0,0,0.05)' }}
       whileTap={{ scale: 0.95 }}
       onClick={handleLogout}
-      className={`flex items-center gap-2 px-3 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition ${className}`}
+      className={`flex items-center gap-2 px-3 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition ${className} cursor-pointer`}
     >
       <span className="font-medium">Logout</span>
     </motion.button>

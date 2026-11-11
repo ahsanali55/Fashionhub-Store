@@ -8,6 +8,10 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BackButton } from '@/components/Reusable_Components/BackButton';
+import { useAppDispatch, useAppSelector } from '@/hooks/redux';
+import { deleteProduct } from '@/services/management.services';
+import { removeProduct } from '@/redux/slices/productsSlice';
+import { formatPrice } from '@/lib/utils';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -18,12 +22,17 @@ const containerVariants = {
 };
 
 export default function SupplierEditProductsPage() {
-  const products = useSelector((state: RootState) => state.products);
+  const products = useAppSelector((state: RootState) => state.products);
+  const auth = useAppSelector((state: RootState) => state.auth);
+  const dispatch = useAppDispatch();
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [requestError, setRequestError] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const filteredProducts = products.items.filter((product) =>
+    product.supplierId === auth.user?.id &&
     product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -31,10 +40,18 @@ export default function SupplierEditProductsPage() {
     router.push(`/supplier/products/edit/${productId}`);
   };
 
-  const handleDelete = (productId: string) => {
-    setDeletingId(null);
-    alert(`Product ${productId} deleted successfully!`);
-    // In a real app, this would dispatch a delete action to Redux
+  const handleDelete = async (productId: string) => {
+    setIsDeleting(true);
+    setRequestError('');
+    try {
+      await deleteProduct(productId);
+      dispatch(removeProduct(productId));
+      setDeletingId(null);
+    } catch (error) {
+      setRequestError(error instanceof Error ? error.message : 'Unable to delete product.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -95,7 +112,6 @@ export default function SupplierEditProductsPage() {
                   <th className="px-6 py-4 text-left text-sm font-semibold">Category</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Price</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Stock</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Sales</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Actions</th>
                 </tr>
               </thead>
@@ -118,14 +134,13 @@ export default function SupplierEditProductsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm">{product.category}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-primary">${product.price.toFixed(2)}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-primary">{formatPrice(product.price)}</td>
                     <td className="px-6 py-4 text-sm">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${product.stock > 10 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                         }`}>
                         {product.stock}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm">{Math.floor(Math.random() * 50)}</td>
                     <td className="px-6 py-4 text-sm">
                       <div className="flex items-center gap-2">
                         <button
@@ -160,6 +175,7 @@ export default function SupplierEditProductsPage() {
               </Link>
             </div>
           )}
+          {requestError && <p role="alert" className="px-6 py-4 text-sm text-destructive">{requestError}</p>}
         </motion.div>
 
         {/* Delete Confirmation Modal */}
@@ -180,10 +196,11 @@ export default function SupplierEditProductsPage() {
                   Cancel
                 </button>
                 <button
-                  onClick={() => handleDelete(deletingId)}
+                  onClick={() => void handleDelete(deletingId)}
+                  disabled={isDeleting}
                   className="flex-1 px-4 py-2 bg-destructive text-white rounded-lg hover:opacity-90 transition"
                 >
-                  Delete
+                  {isDeleting ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
             </motion.div>

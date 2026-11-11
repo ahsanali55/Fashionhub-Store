@@ -2,19 +2,22 @@ import User from "../models/user.model";
 import { IUser } from "../interfaces/user.interface";
 import { ApiError } from "../utils/ApiError";
 import jwt from "jsonwebtoken";
-import crypto from "crypto";
-import { generatePasswordResetToken } from "../utils/generatePasswordResetToken";
 import cloudinary from "../config/cloudinary";
-import fs from "fs";
+import bcrypt from "bcrypt";
+import { deleteLocalImage } from "../utils/uploadImage";
 interface RegisterUserData {
   fullName: string;
   email: string;
   password: string;
+  recoveryQuestion: string;
+  recoveryAnswer: string;
   role?: "customer" | "supplier";
 }
 
 export const registerUser = async (data: RegisterUserData): Promise<IUser> => {
-  const { fullName, email, password, role = "customer" } = data;
+  const fullName = data.fullName.trim();
+  const email = data.email.trim().toLowerCase();
+  const { password, recoveryQuestion, recoveryAnswer, role = "customer" } = data;
 
   const existingUser = await User.findOne({ email });
 
@@ -22,12 +25,28 @@ export const registerUser = async (data: RegisterUserData): Promise<IUser> => {
     throw new ApiError(409, "User already exists");
   }
 
-  const user = await User.create({
-    fullName,
-    email,
-    password,
-    role,
-  });
+  let user: IUser;
+  try {
+    const recoveryAnswerHash = await bcrypt.hash(recoveryAnswer.trim().toLocaleLowerCase(), 12);
+    user = await User.create({
+      fullName,
+      email,
+      password,
+      role,
+      recoveryQuestion,
+      recoveryAnswerHash,
+    });
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === 11000
+    ) {
+      throw new ApiError(409, "An account with this email already exists");
+    }
+    throw error;
+  }
 
   return user;
 };
@@ -40,16 +59,19 @@ interface LoginUserData {
 export const loginUser = async (data: LoginUserData): Promise<IUser> => {
   const { email, password } = data;
 
-  const user = await User.findOne({ email }).select("+password");
+  const user = await User.findOne({ email: email.trim().toLowerCase() }).select("+password");
 
   if (!user) {
-    throw new ApiError(404, "Invalid email or password.");
+    throw new ApiError(401, "Invalid email or password.");
   }
 
   const isPasswordMatched = await user.comparePassword(password);
 
   if (!isPasswordMatched) {
-    throw new ApiError(404, "Invalid email or password.");
+    throw new ApiError(401, "Invalid email or password.");
+  }
+  if (!user.isActive) {
+    throw new ApiError(403, "This account is disabled. Contact support for help.");
   }
 
   return user;
@@ -64,13 +86,21 @@ export const refreshAccessToken = async (refreshToken: string) => {
   if (!refreshToken) {
     throw new ApiError(401, "Refresh token is missing.");
   }
-  const decoded = jwt.verify(
-    refreshToken,
-    process.env.JWT_REFRESH_SECRET!,
-  ) as RefreshTokenPayload;
+  let decoded: RefreshTokenPayload;
+  try {
+    decoded = jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET!,
+    ) as RefreshTokenPayload;
+  } catch {
+    throw new ApiError(401, "Invalid or expired refresh token.");
+  }
   const user = await User.findById(decoded.id);
   if (!user) {
     throw new ApiError(401, "User not found.");
+  }
+  if (!user.isActive) {
+    throw new ApiError(403, "This account is disabled.");
   }
   if (user.refreshToken !== refreshToken) {
     throw new ApiError(401, "Invalid refresh token.");
@@ -87,59 +117,17 @@ export const logoutUser = async (userId: string): Promise<void> => {
   });
 };
 
-// create a function to generate password reset token and save it to the user document
-export const forgotPassword = async (email: string) => {
-  const user = await User.findOne({ email });
-  if (!user) {
-    throw new ApiError(404, "User not found.");
-  }
-  const { resetToken, hashedToken } = generatePasswordResetToken();
-  user.passwordResetToken = hashedToken;
-  user.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-  await user.save();
-  return { user, resetToken };
-};
-
-// reset password function to reset the password using the reset token
-export const resetPassword = async (token: string, password: string) => {
-  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-  const user = await User.findOne({
-    passwordResetToken: hashedToken,
-    passwordResetExpires: {
-      $gt: new Date(),
-    },
-  });
-  if (!user) {
-    throw new ApiError(400, "Invalid or expired reset token.");
-  }
-  user.password = password;
-  user.passwordResetToken = null;
-  user.passwordResetExpires = null; // Force logout from all devices
-  user.refreshToken = null;
-  await user.save();
-  return user;
-};
-
-// Update user avatar function to update the avatar of the user at cloudinary and save the new avatar URL to the user document
-export const uploadOnCloudinary = async (localFilePath: string) => {
-  try {
-    if (!localFilePath) return null;
-    const response = await cloudinary.uploader.upload(localFilePath, {
-      resource_type: "auto",
-      folder: "fashionhub/avatars",
-    });
-    // Remove the locally saved temporary file
-    fs.unlinkSync(localFilePath);
-    return response;
-  } catch (error) {
-    fs.unlinkSync(localFilePath); // Remove temp file on failure
-    return null;
-  }
-};
-
 export const deleteFromCloudinary = async (imageUrl: string) => {
   try {
     if (!imageUrl) return;
+    if (await deleteLocalImage(imageUrl)) return;
+    if (
+      !process.env.CLOUDINARY_CLOUD_NAME ||
+      !process.env.CLOUDINARY_API_KEY ||
+      !process.env.CLOUDINARY_API_SECRET
+    ) {
+      return;
+    }
     // Extract public ID from Cloudinary URL
     const parts = imageUrl.split("/");
     const filename = parts[parts.length - 1];

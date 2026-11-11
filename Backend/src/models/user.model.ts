@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcrypt";
 import { IUser } from "../interfaces/user.interface";
+import { recoveryQuestions } from "../constants/recoveryQuestions";
 
 const userSchema = new Schema<IUser>(
   {
@@ -21,16 +22,19 @@ const userSchema = new Schema<IUser>(
     password: {
       type: String,
       required: true,
-      minlength: 6,
+      minlength: 8,
+      maxlength: 72,
       select: false,
     },
-    passwordResetToken: {
+    recoveryQuestion: {
       type: String,
+      enum: recoveryQuestions,
       default: null,
     },
-    passwordResetExpires: {
-      type: Date,
+    recoveryAnswerHash: {
+      type: String,
       default: null,
+      select: false,
     },
     role: {
       type: String,
@@ -45,6 +49,7 @@ const userSchema = new Schema<IUser>(
       },
     },
     isActive: { type: Boolean, default: true },
+    notificationsEnabled: { type: Boolean, default: true },
     refreshToken: {
       type: String,
       default: null,

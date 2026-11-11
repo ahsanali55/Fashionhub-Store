@@ -1,35 +1,60 @@
 'use client';
 
-import { useDispatch, useSelector } from 'react-redux';
+import { useAppDispatch, useAppSelector } from '@/hooks/redux';
 import { RootState } from '@/redux/store';
-import { removeFromCart, updateQuantity, toggleCart, clearCart } from '@/redux/slices/cartSlice';
-import { FiX, FiTrash2, FiCheck } from 'react-icons/fi';
+import { formatPrice } from '@/lib/utils';
+import {
+  removeFromCart,
+  updateQuantity,
+  toggleCart,
+} from '@/redux/slices/cartSlice';
+
+import {
+  FiX,
+  FiTrash2,
+  FiMinus,
+  FiPlus,
+  FiShoppingBag,
+  FiArrowRight,
+} from 'react-icons/fi';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 
 export function CartDrawer() {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const router = useRouter();
-  const { isOpen, items, total } = useSelector((state: RootState) => state.cart);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [orderPlaced, setOrderPlaced] = useState(false);
 
-  const handleCheckout = async () => {
-    setIsProcessing(true);
-    // Simulate order processing
-    setTimeout(() => {
-      setOrderPlaced(true);
-      setIsProcessing(false);
-      
-      setTimeout(() => {
-        dispatch(clearCart());
-        dispatch(toggleCart());
-        setOrderPlaced(false);
-        router.push('/dashboard');
-      }, 2000);
-    }, 1500);
+  const { isOpen, items, total } = useAppSelector(
+    (state: RootState) => state.cart
+  );
+
+  const handleCheckout = () => {
+    dispatch(toggleCart());
+    router.push('/checkout');
+  };
+
+  const handleIncrease = (item: any) => {
+    if (item.quantity < item.stock) {
+      dispatch(
+        updateQuantity({
+          id: item.id,
+          quantity: item.quantity + 1,
+        })
+      );
+    }
+  };
+
+  const handleDecrease = (item: any) => {
+    if (item.quantity > 1) {
+      dispatch(
+        updateQuantity({
+          id: item.id,
+          quantity: item.quantity - 1,
+        })
+      );
+    }
   };
 
   return (
@@ -42,132 +67,383 @@ export function CartDrawer() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => dispatch(toggleCart())}
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-40 "
           />
 
           {/* Drawer */}
-          <motion.div
+          <motion.aside
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 h-full w-full sm:w-96 bg-card shadow-lg z-50 flex flex-col border border-border"
+            transition={{
+              type: 'spring',
+              damping: 28,
+              stiffness: 260,
+            }}
+            className="
+              fixed
+              right-0
+              top-0
+              h-full
+              w-full
+              sm:max-w-md
+              bg-background
+              text-foreground
+              shadow-2xl
+              z-50
+              flex
+              flex-col
+              border-l
+              border-border
+            "
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-border">
-              <h2 className="text-xl font-bold">Shopping Cart</h2>
+            <div className="flex items-center justify-between px-6 py-5 border-b border-border">
+              <div>
+                <div className="flex items-center gap-2">
+                  <FiShoppingBag className="w-5 h-5" />
+
+                  <h2 className="text-lg font-bold">
+                    Your Cart
+                  </h2>
+                </div>
+
+                {items.length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {items.length} unique item
+                    {items.length !== 1 ? 's' : ''}
+                  </p>
+                )}
+              </div>
+
               <button
                 onClick={() => dispatch(toggleCart())}
-                className="p-2 hover:bg-secondary rounded-lg transition"
+                aria-label="Close cart"
+                className="
+                  w-9
+                  h-9
+                  rounded-full
+                  flex
+                  items-center
+                  justify-center
+                  hover:bg-muted
+                  transition
+                "
               >
                 <FiX className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Items */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {/* Cart Items */}
+            <div className="flex-1 overflow-y-auto px-6 py-5">
               {items.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full">
-                  <p className="text-muted-foreground mb-4">Your cart is empty</p>
+                <div className="h-full flex flex-col items-center justify-center text-center">
+                  <div
+                    className="
+                      w-16
+                      h-16
+                      rounded-full
+                      bg-muted
+                      flex
+                      items-center
+                      justify-center
+                      mb-5
+                    "
+                  >
+                    <FiShoppingBag className="w-7 h-7 text-muted-foreground" />
+                  </div>
+
+                  <h3 className="text-lg font-bold mb-2">
+                    Your cart is empty
+                  </h3>
+
+                  <p className="text-sm text-muted-foreground max-w-xs mb-6">
+                    Looks like you haven't added anything yet.
+                  </p>
+
                   <Link
                     href="/shop"
                     onClick={() => dispatch(toggleCart())}
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition"
+                    className="
+                      inline-flex
+                      items-center
+                      gap-2
+                      px-5
+                      py-3
+                      rounded-lg
+                      bg-primary
+                      text-primary-foreground
+                      text-sm
+                      font-semibold
+                      hover:opacity-90
+                      transition
+                    "
                   >
-                    Continue Shopping
+                    Start Shopping
+                    <FiArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
               ) : (
-                items.map((item) => (
-                  <motion.div
-                    key={item.id}
-                    layout
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="flex gap-4 pb-4 border-b border-border"
-                  >
-                    {/* Image */}
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-20 h-20 rounded-lg object-cover"
-                    />
+                <div className="space-y-5">
+                  {items.map((item) => (
+                    <motion.div
+                      key={item.id}
+                      layout
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      className="
+                        flex
+                        gap-4
+                        pb-5
+                        border-b
+                        border-border
+                      "
+                    >
+                      {/* Product Image */}
+                      <Link
+                        href={`/product/${item.id}`}
+                        onClick={() => dispatch(toggleCart())}
+                        className="
+                          w-20
+                          h-24
+                          shrink-0
+                          overflow-hidden
+                          rounded-lg
+                          bg-muted
+                        "
+                      >
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="
+                            w-full
+                            h-full
+                            object-cover
+                            transition-transform
+                            duration-300
+                            hover:scale-105
+                          "
+                        />
+                      </Link>
 
-                    {/* Details */}
-                    <div className="flex-1">
-                      <h3 className="font-medium text-sm">{item.name}</h3>
-                      <p className="text-primary font-semibold">${item.price.toFixed(2)}</p>
+                      {/* Details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            {item.brand && (
+                              <p className="
+                                text-[10px]
+                                uppercase
+                                tracking-wider
+                                font-semibold
+                                text-muted-foreground
+                                mb-1
+                              ">
+                                {item.brand}
+                              </p>
+                            )}
 
-                      {/* Quantity */}
-                      <div className="flex items-center gap-2 mt-2">
-                        <button
-                          onClick={() =>
-                            dispatch(updateQuantity({ id: item.id, quantity: Math.max(1, item.quantity - 1) }))
-                          }
-                          className="px-2 py-1 bg-secondary rounded hover:bg-border transition text-xs"
-                        >
-                          -
-                        </button>
-                        <span className="w-6 text-center text-sm">{item.quantity}</span>
-                        <button
-                          onClick={() =>
-                            dispatch(updateQuantity({ id: item.id, quantity: item.quantity + 1 }))
-                          }
-                          className="px-2 py-1 bg-secondary rounded hover:bg-border transition text-xs"
-                        >
-                          +
-                        </button>
-                        <button
-                          onClick={() => dispatch(removeFromCart(item.id))}
-                          className="ml-auto p-1 text-destructive hover:bg-secondary rounded transition"
-                        >
-                          <FiTrash2 className="w-4 h-4" />
-                        </button>
+                            <Link
+                              href={`/product/${item.id}`}
+                              onClick={() => dispatch(toggleCart())}
+                              className="
+                                text-sm
+                                font-semibold
+                                line-clamp-2
+                                hover:text-primary
+                                transition
+                              "
+                            >
+                              {item.name}
+                            </Link>
+                          </div>
+
+                          {/* Remove */}
+                          <button
+                            onClick={() =>
+                              dispatch(removeFromCart(item.id))
+                            }
+                            aria-label={`Remove ${item.name}`}
+                            className="
+                              shrink-0
+                              p-1.5
+                              rounded-md
+                              text-muted-foreground
+                              hover:text-destructive
+                              hover:bg-muted
+                              transition
+                            "
+                          >
+                            <FiTrash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <div className="flex items-center justify-between mt-3">
+                          <span className="text-sm font-bold">
+                            {formatPrice(item.price)}
+                          </span>
+
+                          {/* Quantity */}
+                          <div
+                            className="
+                              flex
+                              items-center
+                              border
+                              border-border
+                              rounded-lg
+                              overflow-hidden
+                            "
+                          >
+                            <button
+                              onClick={() => handleDecrease(item)}
+                              disabled={item.quantity <= 1}
+                              className="
+                                w-8
+                                h-8
+                                flex
+                                items-center
+                                justify-center
+                                hover:bg-muted
+                                disabled:opacity-30
+                                transition
+                              "
+                            >
+                              <FiMinus className="w-3 h-3" />
+                            </button>
+
+                            <span
+                              className="
+                                w-8
+                                text-center
+                                text-sm
+                                font-semibold
+                              "
+                            >
+                              {item.quantity}
+                            </span>
+
+                            <button
+                              onClick={() => handleIncrease(item)}
+                              disabled={item.quantity >= item.stock}
+                              className="
+                                w-8
+                                h-8
+                                flex
+                                items-center
+                                justify-center
+                                hover:bg-muted
+                                disabled:opacity-30
+                                transition
+                              "
+                            >
+                              <FiPlus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Item subtotal */}
+                        <p className="
+                          text-xs
+                          text-muted-foreground
+                          mt-2
+                          text-right
+                        ">
+                          Subtotal: 
+                          {formatPrice(item.price * item.quantity)}
+                        </p>
                       </div>
-                    </div>
-                  </motion.div>
-                ))
+                    </motion.div>
+                  ))}
+                </div>
               )}
             </div>
 
             {/* Footer */}
             {items.length > 0 && (
-              <div className="border-t border-border p-6 space-y-4">
-                <div className="flex justify-between items-center text-lg font-bold">
-                  <span>Total:</span>
-                  <span className="text-primary">${total.toFixed(2)}</span>
+              <div
+                className="
+                  border-t
+                  border-border
+                  px-6
+                  py-5
+                  bg-background
+                "
+              >
+                {/* Summary */}
+                <div className="space-y-2 mb-5">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Subtotal
+                    </span>
+
+                    <span className="font-medium">
+                      {formatPrice(total)}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Shipping
+                    </span>
+
+                    <span className="text-green-600 dark:text-green-400 font-medium">
+                      Free
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-3 border-t border-border">
+                    <span className="font-bold">
+                      Total
+                    </span>
+
+                    <span className="text-xl font-bold text-primary">
+                      {formatPrice(total)}
+                    </span>
+                  </div>
                 </div>
 
-                {orderPlaced ? (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="w-full bg-green-100 text-green-800 py-3 rounded-lg font-medium flex items-center justify-center gap-2"
-                  >
-                    <FiCheck className="w-5 h-5" />
-                    Order Placed Successfully!
-                  </motion.div>
-                ) : (
-                  <>
+                <div className="space-y-3">
                     <button
                       onClick={handleCheckout}
-                      disabled={isProcessing}
-                      className="w-full bg-primary text-primary-foreground py-3 rounded-lg hover:opacity-90 transition font-medium disabled:opacity-50"
+                      className="
+                        w-full
+                        h-12
+                        rounded-lg
+                        bg-primary
+                        text-primary-foreground
+                        font-semibold
+                        hover:opacity-90
+                        transition
+                        disabled:opacity-50
+                        flex
+                        items-center
+                        justify-center
+                      "
                     >
-                      {isProcessing ? 'Processing...' : 'Checkout'}
+                      Checkout
                     </button>
+
                     <button
                       onClick={() => dispatch(toggleCart())}
-                      className="w-full border border-border py-3 rounded-lg hover:bg-secondary transition font-medium"
+                      className="
+                        w-full
+                        h-11
+                        rounded-lg
+                        border
+                        border-border
+                        font-medium
+                        text-sm
+                        hover:bg-muted
+                        transition
+                      "
                     >
                       Continue Shopping
                     </button>
-                  </>
-                )}
+                </div>
               </div>
             )}
-          </motion.div>
+          </motion.aside>
         </>
       )}
     </AnimatePresence>

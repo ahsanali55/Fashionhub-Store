@@ -6,9 +6,17 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FiUsers, FiBox, FiBarChart2, FiDollarSign, FiArrowRight } from 'react-icons/fi';
-import { LogoutButton } from '@/components/Reusable_Components/LogoutButton';
+import { FiArrowRight, FiBox, FiDollarSign, FiPackage, FiUsers } from 'react-icons/fi';
 import { LoadingSpinner } from '@/components/Admin/Loaders/LoadingSpinner';
+import {
+  getAdminAnalytics,
+  getAllProductsForManagement,
+  getUsers,
+  type AdminAnalytics,
+  type AdminUser,
+} from '@/services/management.services';
+import { getAdminOrders, getOrderStatus, type Order } from '@/services/commerce.services';
+import { formatPrice, getErrorMessage } from '@/lib/utils';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -25,17 +33,43 @@ export default function AdminDashboardPage() {
   const auth = useSelector((state: RootState) => state.auth);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const orders = useSelector((state: RootState) => state.orders);
-  const products = useSelector((state: RootState) => state.products);
+  const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
+  const [totalProducts, setTotalProducts] = useState<number | null>(null);
+  const [hiddenProducts, setHiddenProducts] = useState(0);
+  const [pendingSuppliers, setPendingSuppliers] = useState<AdminUser[]>([]);
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [ordersNeedingAttention, setOrdersNeedingAttention] = useState(0);
+  const [requestError, setRequestError] = useState('');
 
   useEffect(() => {
     if (!auth.isAuthenticated || auth.user?.role !== 'admin') {
       router.push('/login');
     } else {
       setIsAuthorized(true);
-      // Simulate page load
-      const timer = setTimeout(() => setIsLoading(false), 500);
-      return () => clearTimeout(timer);
+      let active = true;
+      Promise.all([
+        getAdminAnalytics(),
+        getAllProductsForManagement(),
+        getUsers(),
+        getAdminOrders(),
+      ])
+        .then(([data, productRecords, users, orders]) => {
+          if (!active) return;
+          setAnalytics(data);
+          setTotalProducts(productRecords.length);
+          setHiddenProducts(productRecords.filter((product) => product.isVisible === false).length);
+          setPendingSuppliers(users.filter((user) => user.role === 'supplier' && user.status === 'pending'));
+          setRecentOrders(orders.slice(0, 5));
+          setOrdersNeedingAttention(orders.filter((order) => {
+            const status = getOrderStatus(order);
+            return status === 'pending' || status === 'processing';
+          }).length);
+        })
+        .catch((error: unknown) => {
+          if (active) setRequestError(getErrorMessage(error, 'Unable to load dashboard data.'));
+        })
+        .finally(() => { if (active) setIsLoading(false); });
+      return () => { active = false; };
     }
   }, [auth.isAuthenticated, auth.user?.role, router]);
 
@@ -47,144 +81,154 @@ export default function AdminDashboardPage() {
     return <LoadingSpinner fullScreen size="lg" text="Loading admin dashboard..." />;
   }
 
-  const totalRevenue = orders.items ? orders.items.reduce((sum, o) => sum + o.total, 0) : 0;
-
-  const adminLinks = [
-    { label: 'User Management', icon: FiUsers, href: '/admin/users' },
-    { label: 'Supplier Management', icon: FiBox, href: '/admin/suppliers' },
-    { label: 'Product Approval', icon: FiBox, href: '/admin/products' },
-    { label: 'Orders', icon: FiDollarSign, href: '/admin/orders' },
-    { label: 'Analytics', icon: FiBarChart2, href: '/admin/analytics' },
-    { label: 'Reports', icon: FiBarChart2, href: '/admin/reports' },
-  ];
-
   return (
-    <main className="bg-background min-h-screen mt-10 py-12">
+    <main className="bg-background min-h-screen py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header with Logout */}
-        <div className="flex items-start justify-between mb-12">
+        <div className="mb-12">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
           >
             <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
-            <p className="text-muted-foreground">Welcome back, administrator</p>
+            <p className="text-muted-foreground">
+              Welcome back{auth.user?.fullName ? `, ${auth.user.fullName}` : ''}.
+            </p>
           </motion.div>
-          <LogoutButton variant="full" />
         </div>
+
+        {requestError && <p role="alert" className="mb-6 text-sm text-destructive">{requestError}</p>}
 
         {/* Key Metrics */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12"
+          className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4 mb-10"
         >
-          <motion.div variants={itemVariants} className="bg-card rounded-lg shadow-sm p-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Platform Revenue</p>
-                <p className="text-4xl font-bold mt-2">${totalRevenue.toFixed(0)}K</p>
-                <p className="text-green-600 text-sm mt-2">+24% this month</p>
-              </div>
-              <FiDollarSign className="w-12 h-12 text-primary opacity-20" />
+          <motion.div variants={itemVariants} className="flex min-h-44 flex-col justify-between rounded-xl border border-border bg-card p-6 shadow-sm">
+            <div className="flex h-10 items-start justify-between gap-3">
+              <p className="text-sm font-medium leading-5 text-muted-foreground">Gross Sales</p>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <FiDollarSign className="h-5 w-5" />
+              </span>
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-2xl font-bold leading-tight tracking-tight tabular-nums sm:text-3xl" title={analytics ? formatPrice(analytics.totalRevenue) : undefined}>
+                {analytics ? formatPrice(analytics.totalRevenue) : '—'}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">Value of recorded orders</p>
             </div>
           </motion.div>
 
-          <motion.div variants={itemVariants} className="bg-card rounded-lg shadow-sm p-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Total Orders</p>
-                <p className="text-4xl font-bold mt-2">{Array.isArray(orders.items) ? orders.items.length : 0}</p>
-                <p className="text-primary text-sm mt-2">This month</p>
-              </div>
-              <FiBox className="w-12 h-12 text-accent opacity-20" />
+          <motion.div variants={itemVariants} className="flex min-h-44 flex-col justify-between rounded-xl border border-border bg-card p-6 shadow-sm">
+            <div className="flex h-10 items-start justify-between gap-3">
+              <p className="text-sm font-medium leading-5 text-muted-foreground">Total Orders</p>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                <FiBox className="h-5 w-5" />
+              </span>
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-2xl font-bold leading-tight tracking-tight tabular-nums sm:text-3xl">{analytics?.totalOrders ?? '—'}</p>
+              <p className="mt-2 text-sm text-muted-foreground">All platform orders</p>
             </div>
           </motion.div>
 
-          <motion.div variants={itemVariants} className="bg-card rounded-lg shadow-sm p-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Total Products</p>
-                <p className="text-4xl font-bold mt-2">{Array.isArray(products.items) ? products.items.length : 0}</p>
-                <p className="text-muted-foreground text-sm mt-2">Active</p>
-              </div>
-              <FiBox className="w-12 h-12 text-primary opacity-20" />
+          <motion.div variants={itemVariants} className="flex min-h-44 flex-col justify-between rounded-xl border border-border bg-card p-6 shadow-sm">
+            <div className="flex h-10 items-start justify-between gap-3">
+              <p className="text-sm font-medium leading-5 text-muted-foreground">Total Products</p>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <FiBox className="h-5 w-5" />
+              </span>
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-2xl font-bold leading-tight tracking-tight tabular-nums sm:text-3xl">{totalProducts ?? '—'}</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {hiddenProducts} hidden from the marketplace
+              </p>
             </div>
           </motion.div>
 
-          <motion.div variants={itemVariants} className="bg-card rounded-lg shadow-sm p-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Avg Order Value</p>
-                <p className="text-4xl font-bold mt-2">$197</p>
-                <p className="text-green-600 text-sm mt-2">+6% from last month</p>
-              </div>
-              <FiBarChart2 className="w-12 h-12 text-accent opacity-20" />
+          <motion.div variants={itemVariants} className="flex min-h-44 flex-col justify-between rounded-xl border border-border bg-card p-6 shadow-sm">
+            <div className="flex h-10 items-start justify-between gap-3">
+              <p className="text-sm font-medium leading-5 text-muted-foreground">Pending Suppliers</p>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                <FiUsers className="h-5 w-5" />
+              </span>
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-2xl font-bold leading-tight tracking-tight tabular-nums sm:text-3xl">{pendingSuppliers.length}</p>
+              <p className="mt-2 text-sm text-muted-foreground">Applications awaiting review</p>
             </div>
           </motion.div>
         </motion.div>
 
-        {/* Admin Tools */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="mb-12"
-        >
-          <h2 className="text-2xl font-bold mb-6">Management Tools</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {adminLinks.map((link) => {
-              const Icon = link.icon;
-              return (
-                <motion.div key={link.href} variants={itemVariants}>
-                  <Link
-                    href={link.href}
-                    className="bg-card rounded-lg shadow-sm p-8 hover:shadow-md transition group block"
-                  >
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center group-hover:bg-primary group-hover:text-white transition mb-4">
-                      <Icon className="w-6 h-6 text-primary group-hover:text-white transition" />
+        <section className="mb-10 grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold">Needs attention</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Work queues that may need your review.</p>
+              </div>
+              <FiPackage className="mt-1 h-5 w-5 text-primary" />
+            </div>
+            <div className="mt-5 space-y-3">
+              <Link href="/admin/suppliers" className="flex items-center justify-between rounded-xl border border-border p-4 transition hover:bg-muted/60">
+                <span>
+                  <span className="block text-sm font-medium">Supplier applications</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">Review pending supplier accounts</span>
+                </span>
+                <span className="flex items-center gap-2 text-sm font-semibold">
+                  {pendingSuppliers.length}
+                  <FiArrowRight className="h-4 w-4 text-muted-foreground" />
+                </span>
+              </Link>
+              <Link href="/admin/orders" className="flex items-center justify-between rounded-xl border border-border p-4 transition hover:bg-muted/60">
+                <span>
+                  <span className="block text-sm font-medium">Recent orders to check</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">Orders currently pending or processing</span>
+                </span>
+                <span className="flex items-center gap-2 text-sm font-semibold">
+                  {ordersNeedingAttention}
+                  <FiArrowRight className="h-4 w-4 text-muted-foreground" />
+                </span>
+              </Link>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+            <div className="flex items-center justify-between gap-4 border-b border-border p-6">
+              <div>
+                <h2 className="text-lg font-semibold">Recent orders</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Latest platform activity</p>
+              </div>
+              <Link href="/admin/orders" className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
+                All orders <FiArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+            {recentOrders.length ? (
+              <div className="divide-y divide-border">
+                {recentOrders.map((order) => {
+                  const status = getOrderStatus(order);
+                  const customer = typeof order.userId === 'object' ? order.userId.fullName : 'Customer';
+                  return (
+                    <div key={order._id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold">Order #{order._id.slice(-8)}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{customer} · {new Date(order.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold tabular-nums">{formatPrice(order.total)}</span>
+                        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium capitalize">{status}</span>
+                      </div>
                     </div>
-                    <h3 className="font-bold text-lg group-hover:text-primary transition mb-2">{link.label}</h3>
-                    <FiArrowRight className="w-4 h-4 text-primary opacity-0 group-hover:opacity-100 transition" />
-                  </Link>
-                </motion.div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="p-8 text-center text-sm text-muted-foreground">No platform orders yet.</p>
+            )}
           </div>
-        </motion.div>
-
-        {/* System Status */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <h2 className="text-2xl font-bold mb-6">System Status</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <motion.div variants={itemVariants} className="bg-card rounded-lg shadow-sm p-6">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">Database</h3>
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              </div>
-              <p className="text-sm text-muted-foreground">All systems operational</p>
-            </motion.div>
-            <motion.div variants={itemVariants} className="bg-card rounded-lg shadow-sm p-6">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">API</h3>
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              </div>
-              <p className="text-sm text-muted-foreground">Response time: 45ms</p>
-            </motion.div>
-            <motion.div variants={itemVariants} className="bg-card rounded-lg shadow-sm p-6">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">Storage</h3>
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              </div>
-              <p className="text-sm text-muted-foreground">68% capacity used</p>
-            </motion.div>
-          </div>
-        </motion.div>
+        </section>
       </div>
     </main>
   );

@@ -1,10 +1,5 @@
-import CustomerWishlistPage from '@/components/Customers/Customer_Wishlist/CustomerWhislist'
-import React from 'react'
+import CustomerWishlistPage from '@/components/Customers/Customer_Wishlist/CustomerWhislist';
 
-export default function page() {
-  return (
-    <div>
-      <CustomerWishlistPage />
-    </div>
-  )
+export default function CustomerWishlistRoute() {
+  return <CustomerWishlistPage />;
 }

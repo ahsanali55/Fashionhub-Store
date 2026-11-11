@@ -1,13 +1,15 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useSelector } from 'react-redux';
+import { useAppSelector } from '@/hooks/redux';
 import { RootState } from '@/redux/store';
 import { useRouter } from 'next/navigation';
 import { FiPackage, FiCheck, FiTruck } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
 import { BackButton } from '@/components/Reusable_Components/BackButton';
 import { LoadingSpinner } from '@/components/Admin/Loaders/LoadingSpinner';
+import { getAdminOrders, getOrderStatus, type Order as ApiOrder } from '@/services/commerce.services';
+import { formatPrice } from '@/lib/utils';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -26,8 +28,6 @@ const statusColors: Record<string, string> = {
   delivered: 'bg-green-100 text-green-800',
 };
 
-const statusOptions = ['pending', 'processing', 'shipped', 'delivered'];
-
 interface Order {
   id: string;
   items: any[];
@@ -38,13 +38,11 @@ interface Order {
 
 export default function AdminOrdersPage() {
   const router = useRouter();
-  const auth = useSelector((state: RootState) => state.auth);
-  const reduxOrders = useSelector((state: RootState) => state.orders);
+  const auth = useAppSelector((state: RootState) => state.auth);
   const [orders, setOrders] = useState<Order[]>([]);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const [requestError, setRequestError] = useState('');
 
   useEffect(() => {
     if (!auth.isAuthenticated || auth.user?.role !== 'admin') {
@@ -52,10 +50,27 @@ export default function AdminOrdersPage() {
       return;
     }
     setIsAuthorized(true);
-    setOrders(reduxOrders.items as Order[]);
-    const timer = setTimeout(() => setIsLoading(false), 400);
-    return () => clearTimeout(timer);
-  }, [auth.isAuthenticated, auth.user?.role, router, reduxOrders]);
+    let active = true;
+    getAdminOrders()
+      .then((response) => {
+        if (active) {
+          setOrders(response.map((order: ApiOrder) => ({
+            id: order._id,
+            items: order.items,
+            total: order.total,
+            status: getOrderStatus(order),
+            date: order.createdAt,
+          })));
+        }
+      })
+      .catch((error: unknown) => {
+        if (active) setRequestError(error instanceof Error ? error.message : 'Unable to load orders.');
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => { active = false; };
+  }, [auth.isAuthenticated, auth.user?.role, router]);
 
   if (!isAuthorized) {
     return null;
@@ -63,19 +78,6 @@ export default function AdminOrdersPage() {
 
   if (isLoading) {
     return <LoadingSpinner fullScreen size="lg" text="Loading orders..." />;
-  }
-
-  const handleStatusUpdate = (orderId: string, newStatus: string) => {
-    setOrders(orders.map(order =>
-      order.id === orderId
-        ? { ...order, status: newStatus as any }
-        : order
-    ));
-    setUpdatingId(null);
-  };
-
-  if (!isAuthorized) {
-    return null;
   }
 
   return (
@@ -91,6 +93,8 @@ export default function AdminOrdersPage() {
           <h1 className="text-4xl font-bold mb-2">Orders</h1>
           <p className="text-muted-foreground">Manage platform orders and tracking</p>
         </motion.div>
+
+        {requestError && <p role="alert" className="mb-6 text-sm text-destructive">{requestError}</p>}
 
         {orders.length === 0 ? (
           <motion.div
@@ -118,7 +122,7 @@ export default function AdminOrdersPage() {
               <motion.div variants={itemVariants} className="bg-card p-6 rounded-lg shadow-sm">
                 <p className="text-muted-foreground text-sm">Total Revenue</p>
                 <p className="text-4xl font-bold mt-2">
-                  ${orders.reduce((sum, o) => sum + o.total, 0).toFixed(0)}K
+                  {formatPrice(orders.reduce((sum, order) => sum + order.total, 0))}
                 </p>
                 <p className="text-sm text-green-600 mt-2">+8% from last month</p>
               </motion.div>
@@ -158,32 +162,11 @@ export default function AdminOrdersPage() {
                       >
                         <td className="px-6 py-4 font-semibold">#{order.id}</td>
                         <td className="px-6 py-4 text-sm">{order.items.length} items</td>
-                        <td className="px-6 py-4 font-semibold text-primary">${order.total.toFixed(2)}</td>
+                        <td className="px-6 py-4 font-semibold text-primary">{formatPrice(order.total)}</td>
                         <td className="px-6 py-4">
-                          {updatingId === order.id ? (
-                            <select
-                              value={selectedStatus}
-                              onChange={(e) => {
-                                handleStatusUpdate(order.id, e.target.value);
-                                setSelectedStatus('');
-                              }}
-                              className="px-3 py-1 rounded-lg border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                            >
-                              {statusOptions.map(status => (
-                                <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</option>
-                              ))}
-                            </select>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setUpdatingId(order.id);
-                                setSelectedStatus(order.status);
-                              }}
-                              className={`px-3 py-1 rounded-full text-xs font-semibold capitalize cursor-pointer transition hover:opacity-80 ${statusColors[order.status]}`}
-                            >
-                              {order.status}
-                            </button>
-                          )}
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${statusColors[order.status]}`}>
+                            {order.status}
+                          </span>
                         </td>
                         <td className="px-6 py-4 text-sm text-muted-foreground">
                           {new Date(order.date).toLocaleDateString()}

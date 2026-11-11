@@ -1,10 +1,5 @@
-import SupplierAddProductPage from '@/components/Supliers/Supplier_Add_Products/SupplierAddProducts'
-import React from 'react'
+import { redirect } from 'next/navigation';
 
-export default function page() {
-  return (
-    <div>
-      <SupplierAddProductPage />
-    </div>
-  )
+export default function LegacySupplierAddProductRoute() {
+  redirect('/supplier/products/add');
 }

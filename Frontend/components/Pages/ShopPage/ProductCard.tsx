@@ -7,9 +7,12 @@ import {
   FiHeart,
   FiShoppingBag,
 } from 'react-icons/fi';
-
+import { removeFromWishlist } from '@/redux/slices/wishlistSlice';
+import { useRef, useState } from 'react';
+import { useAppSelector, useAppDispatch } from '@/hooks/redux';
+import { formatPrice } from '@/lib/utils';
 interface Product {
-  id: number;
+  id: number | string;
   name: string;
   brand?: string;
   category?: string;
@@ -35,11 +38,26 @@ export function ProductCard({
   const isNew =
     product.createdAt &&
     Date.now() -
-      new Date(product.createdAt).getTime() <
-      14 * 24 * 60 * 60 * 1000;
-
+    new Date(product.createdAt).getTime() <
+    14 * 24 * 60 * 60 * 1000;
+  const [isAdded, setIsAdded] = useState(false);
+  const addedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dispatch = useAppDispatch();
   const outOfStock = product.stock <= 0;
+  const wishlistItems = useAppSelector(
+    (state) => state.wishlist.items
+  );
 
+  const isWishlisted = wishlistItems.some(
+    (item) => item.id === product.id
+  );
+  const cartItems = useAppSelector(
+    (state) => state.cart.items
+  );
+
+  const isInCart = cartItems.some(
+    (item) => item.id === product.id
+  );
   return (
     <motion.article
       whileHover={{ y: -4 }}
@@ -81,57 +99,95 @@ export function ProductCard({
 
         {/* Wishlist */}
         <button
-          onClick={onAddToWishlist}
-          aria-label="Add to wishlist"
+          onClick={() => {
+            if (isWishlisted) {
+              dispatch(removeFromWishlist(String(product.id)));
+            } else {
+              onAddToWishlist?.();
+            }
+          }}
+          aria-label={
+            isWishlisted
+              ? 'Remove from wishlist'
+              : 'Add to wishlist'
+          }
           className="
-            absolute
-            top-3
-            right-3
-            w-10
-            h-10
-            rounded-full
-            bg-white/95
-            flex
-            items-center
-            justify-center
-            text-foreground
-            hover:text-primary
-            transition
-          "
+    absolute
+    top-3
+    right-3
+    w-10
+    h-10
+    rounded-full
+    bg-white/95
+    flex
+    items-center
+    justify-center
+    text-foreground
+    hover:text-primary
+    transition
+    cursor-pointer
+  "
         >
-          <FiHeart size={18} />
+          <FiHeart
+            size={18}
+            className={isWishlisted ? 'fill-primary text-primary' : ''}
+          />
         </button>
 
-        {/* Quick action */}
         {!outOfStock && (
           <button
-            onClick={onAddToCart}
-            className="
-              absolute
-              bottom-3
-              left-3
-              right-3
-              h-11
-              rounded-lg
-              bg-white
-              text-foreground
-              font-semibold
-              text-sm
-              flex
-              items-center
-              justify-center
-              gap-2
-              opacity-0
-              translate-y-2
-              group-hover:opacity-100
-              group-hover:translate-y-0
-              transition-all
-              duration-300
-              shadow-lg
-            "
+            onClick={() => {
+              onAddToCart?.();
+
+              setIsAdded(true);
+
+              if (addedTimeoutRef.current) {
+                clearTimeout(addedTimeoutRef.current);
+              }
+
+              addedTimeoutRef.current = setTimeout(() => {
+                setIsAdded(false);
+              }, 2000);
+            }}
+            className={`
+      absolute
+      bottom-3
+      left-3
+      right-3
+      h-11
+      rounded-lg
+      font-semibold
+      text-sm
+      flex
+      items-center
+      justify-center
+      gap-2
+      transition-all
+      duration-300
+      shadow-lg
+      opacity-0
+      translate-y-2
+      group-hover:opacity-100
+      group-hover:translate-y-0
+      ${isAdded
+                ? 'bg-orange-500 text-primary-foreground'
+                : 'bg-white text-foreground hover:bg-primary hover:text-primary-foreground'
+              }
+    `}
           >
-            <FiShoppingBag size={16} />
-            Add to Cart
+            {isAdded ? (
+              <>
+                <span className="flex items-center justify-center w-4 h-4 rounded-full border border-current text-[10px]">
+                  ✓
+                </span>
+                Added to Cart
+              </>
+            ) : (
+              <>
+                <FiShoppingBag size={16} />
+                Add to Cart
+              </>
+            )}
           </button>
         )}
       </div>
@@ -157,7 +213,7 @@ export function ProductCard({
           </Link>
 
           <span className="text-sm font-bold shrink-0">
-            ${product.price.toFixed(2)}
+            {formatPrice(product.price)}
           </span>
         </div>
 

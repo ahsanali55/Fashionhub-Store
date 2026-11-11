@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 import Link from 'next/link';
 // Added FiChevronDown for the new scroll indicator
 import { FiArrowRight, FiChevronDown } from 'react-icons/fi';
@@ -20,7 +20,7 @@ backgroundImage = 'https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?
   ctaText = 'Shop Now',
   ctaLink = '/shop',
 }: HeroProps) {
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: {},
     visible: {
       transition: {
@@ -30,7 +30,7 @@ backgroundImage = 'https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?
     },
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: {
       opacity: 0,
       y: 20,

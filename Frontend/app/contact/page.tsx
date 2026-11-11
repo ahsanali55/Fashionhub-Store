@@ -1,275 +1,213 @@
 'use client';
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { FiMail, FiPhone, FiMapPin, FiSend } from 'react-icons/fi';
+import { motion, type Variants } from 'framer-motion';
+import Link from 'next/link';
+import { FiMail, FiGithub, FiLinkedin, FiArrowUpRight, FiArrowRight } from 'react-icons/fi';
+
+const heroContainerVariants: Variants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.15,
+    },
+  },
+};
+
+const heroItemVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.55, ease: 'easeOut' },
+  },
+};
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    },
+  },
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+};
+
+interface Developer {
+  name: string;
+  role: string;
+  image: string;
+  bio: string;
+  email: string;
+  github: string;
+  linkedin: string;
+}
+
+const developers: Developer[] = [
+  {
+    name: 'Awais Tariq',
+    role: 'Frontend Development',
+    image: '/team/awais.jpeg',
+    bio: 'Built the customer, supplier, and admin interfaces, along with the overall design system for FashionHub.',
+    email: 'your-email@example.com',
+    github: 'https://github.com/awazii',
+    linkedin: 'https://linkedin.com/in/awaistariq-frontend',
+  },
+  {
+    name: 'Ahsan',
+    role: 'Backend & Database',
+    image: '/team/ahsan.jpeg',
+    bio: 'Built the API, authentication, and database layer powering the marketplace.',
+    email: 'ahsanalijawad599@gmail.com',
+    github: 'https://github.com/ahsanali55',
+    linkedin: 'https://www.linkedin.com/in/ahsan-ali-11a556317/',
+  },
+];
 
 export default function ContactPage() {
-  const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
-  const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    setTimeout(() => {
-      setLoading(false);
-      setSubmitted(true);
-      setFormData({ name: '', email: '', subject: '', message: '' });
-      setTimeout(() => setSubmitted(false), 5000);
-    }, 800);
-  };
-
-  const contactInfo = [
-    {
-      icon: FiPhone,
-      title: 'Phone',
-      details: '+1 (555) 123-4567',
-      link: 'tel:+15551234567',
-    },
-    {
-      icon: FiMail,
-      title: 'Email',
-      details: 'support@fashionhub.com',
-      link: 'mailto:support@fashionhub.com',
-    },
-    {
-      icon: FiMapPin,
-      title: 'Address',
-      details: '123 Fashion Street, NY 10001',
-      link: 'https://maps.google.com',
-    },
-  ];
-
   return (
     <main className="bg-background">
-      {/* Hero Section */}
-      <section className="py-20 md:py-32 px-4 bg-gradient-to-b from-primary/5 to-transparent">
+      {/* Hero - same layout as homepage HeroSection, no background image */}
+      <section className="relative overflow-hidden">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-4xl mx-auto text-center space-y-6"
+          variants={heroContainerVariants}
+          initial="hidden"
+          animate="visible"
+          className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 flex flex-col items-center"
         >
-          <h1 className="text-5xl md:text-6xl font-bold text-balance">
-            Get in Touch
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Have a question or feedback? We&apos;d love to hear from you. Our team is here to help.
-          </p>
+          <div className="max-w-3xl flex flex-col items-center">
+            {/* Small Brand Label */}
+            <motion.div variants={heroItemVariants}>
+              <span className="inline-flex items-center gap-2 px-3.5 py-1.5 mb-6 rounded-full bg-primary/10 border border-primary/20 text-sm font-semibold text-primary">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                Get in Touch
+              </span>
+            </motion.div>
+
+            {/* Heading */}
+            <motion.h1
+              variants={heroItemVariants}
+              className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[0.95] text-foreground mb-6"
+            >
+              Talk to the
+              <br />
+              <span className="text-primary">Developers.</span>
+            </motion.h1>
+
+            {/* Description */}
+            <motion.p
+              variants={heroItemVariants}
+              className="max-w-xl text-base sm:text-lg leading-7 text-muted-foreground mb-9"
+            >
+              FashionHub is built and maintained by two people, not a support team. Reach out directly.
+            </motion.p>
+
+            {/* Buttons */}
+            <motion.div variants={heroItemVariants} className="flex flex-col sm:flex-row items-start gap-3">
+              <a
+                href={`mailto:${developers[0].email}`}
+                className="inline-flex items-center justify-center gap-2 h-12 px-7 rounded-lg bg-primary text-primary-foreground text-sm font-bold shadow-lg shadow-black/5 hover:bg-primary/90 transition-all group"
+              >
+                Send a Message
+              </a>
+
+              <Link
+                href="/shop"
+                className="group flex items-center justify-center gap-2 px-8 py-4 text-foreground font-bold rounded-lg hover:bg-muted/60 transition-colors duration-300"
+              >
+                Explore FashionHub <FiArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
+              </Link>
+            </motion.div>
+          </div>
         </motion.div>
       </section>
 
-      {/* Contact Section */}
-      <section className="py-20 md:py-24 px-4">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-12">
-          {/* Contact Info */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="space-y-6"
-          >
-            <div>
-              <h2 className="text-3xl font-bold mb-8">Contact Information</h2>
-              <p className="text-muted-foreground mb-12">
-                Reach out to us through any of these channels and we&apos;ll respond as soon as possible.
-              </p>
-            </div>
-
-            {contactInfo.map((info, i) => {
-              const Icon = info.icon;
-              return (
-                <motion.a
-                  key={i}
-                  href={info.link}
-                  initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1 }}
-                  className="flex gap-4 p-4 rounded-lg hover:bg-secondary transition group cursor-pointer"
-                >
-                  <Icon className="w-6 h-6 text-primary flex-shrink-0 group-hover:scale-110 transition" />
-                  <div>
-                    <h3 className="font-semibold mb-1">{info.title}</h3>
-                    <p className="text-muted-foreground group-hover:text-foreground transition">
-                      {info.details}
-                    </p>
-                  </div>
-                </motion.a>
-              );
-            })}
-
-            {/* Social Links */}
-            <div className="pt-8 space-y-4">
-              <h3 className="font-semibold">Follow Us</h3>
-              <div className="flex gap-4">
-                {['Facebook', 'Twitter', 'Instagram', 'LinkedIn'].map((social) => (
-                  <button
-                    key={social}
-                    className="w-10 h-10 rounded-lg bg-secondary hover:bg-primary hover:text-white transition flex items-center justify-center font-semibold text-sm"
-                  >
-                    {social.charAt(0)}
-                  </button>
-                ))}
+      {/* Developer Cards */}
+      <section className="pb-10 px-4">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-80px' }}
+          className="max-w-2xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-6"
+        >
+          {developers.map((dev) => (
+            <motion.div
+              key={dev.name}
+              variants={itemVariants}
+              className="group bg-card border border-border rounded-2xl shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden"
+            >
+              <div className="relative h-56 overflow-hidden">
+                <img
+                  src={dev.image}
+                  alt={dev.name}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent " />
+                <div className="absolute bottom-4 left-5">
+                  <h2 className="text-xl font-bold text-white">{dev.name}</h2>
+                  <p className="text-sm text-white/80">{dev.role}</p>
+                </div>
               </div>
-            </div>
-          </motion.div>
 
-          {/* Contact Form */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="lg:col-span-2"
-          >
-            <div className="bg-card rounded-lg shadow-lg p-8">
-              {submitted && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="mb-6 p-4 bg-green-500/10 border border-green-500 text-green-700 rounded-lg"
-                >
-                  Thank you! We&apos;ve received your message and will get back to you soon.
-                </motion.div>
-              )}
+              <div className="p-6 space-y-5">
+                <p className="text-sm text-muted-foreground leading-6 h-17">{dev.bio}</p>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Name */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">Full Name</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    placeholder="John Doe"
-                    className="w-full px-4 py-3 rounded-lg bg-secondary border border-border focus:ring-2 focus:ring-primary focus:outline-none"
-                    required
-                  />
+                <div className="flex items-center gap-3">
+                  <a
+                    href={`mailto:${dev.email}`}
+                    title="Email"
+                    className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors duration-300"
+                  >
+                    <FiMail className="w-4 h-4" />
+                  </a>
+                  <a
+                    href={dev.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="GitHub"
+                    className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors duration-300"
+                  >
+                    <FiGithub className="w-4 h-4" />
+                  </a>
+                  <a
+                    href={dev.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="LinkedIn"
+                    className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors duration-300"
+                  >
+                    <FiLinkedin className="w-4 h-4" />
+                  </a>
+
+                  <a
+                    href={`mailto:${dev.email}`}
+                    className="ml-auto flex items-center gap-1 text-sm font-semibold text-primary  group"
+                  >
+                    Message
+                    <FiArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
+                  </a>
                 </div>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
 
-                {/* Email */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">Email Address</label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    placeholder="you@example.com"
-                    className="w-full px-4 py-3 rounded-lg bg-secondary border border-border focus:ring-2 focus:ring-primary focus:outline-none"
-                    required
-                  />
-                </div>
-
-                {/* Subject */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">Subject</label>
-                  <input
-                    type="text"
-                    value={formData.subject}
-                    onChange={(e) =>
-                      setFormData({ ...formData, subject: e.target.value })
-                    }
-                    placeholder="How can we help?"
-                    className="w-full px-4 py-3 rounded-lg bg-secondary border border-border focus:ring-2 focus:ring-primary focus:outline-none"
-                    required
-                  />
-                </div>
-
-                {/* Message */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">Message</label>
-                  <textarea
-                    value={formData.message}
-                    onChange={(e) =>
-                      setFormData({ ...formData, message: e.target.value })
-                    }
-                    placeholder="Tell us more about your inquiry..."
-                    rows={6}
-                    className="w-full px-4 py-3 rounded-lg bg-secondary border border-border focus:ring-2 focus:ring-primary focus:outline-none resize-none"
-                    required
-                  />
-                </div>
-
-                {/* Submit Button */}
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-primary text-white py-3 rounded-lg hover:opacity-90 transition font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  <FiSend className="w-5 h-5" />
-                  {loading ? 'Sending...' : 'Send Message'}
-                </motion.button>
-              </form>
-
-              <p className="text-xs text-muted-foreground text-center mt-6">
-                We typically respond within 24 hours during business days.
-              </p>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* FAQ Section */}
-      <section className="py-20 md:py-24 px-4 bg-secondary">
-        <div className="max-w-4xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-4xl font-bold mb-4">Frequently Asked Questions</h2>
-            <p className="text-muted-foreground">
-              Find answers to common questions
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="space-y-4"
-          >
-            {[
-              {
-                q: 'What is FashionHub?',
-                a: 'FashionHub is a premium online marketplace connecting fashion enthusiasts with quality suppliers worldwide.',
-              },
-              {
-                q: 'How do I become a supplier?',
-                a: 'Visit our Supplier Program page and fill out the application. Our team will review and contact you within 5 business days.',
-              },
-              {
-                q: 'What payment methods do you accept?',
-                a: 'We accept all major credit cards, PayPal, Apple Pay, Google Pay, and bank transfers for wholesale orders.',
-              },
-              {
-                q: 'How long does shipping take?',
-                a: 'Standard shipping takes 5-7 business days. Express options available for an additional fee.',
-              },
-            ].map((faq, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="bg-background rounded-lg p-6 hover:shadow-md transition"
-              >
-                <h3 className="font-semibold mb-2">{faq.q}</h3>
-                <p className="text-muted-foreground text-sm">{faq.a}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
+        {/* Small honest footnote instead of a fake FAQ */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="text-center text-sm text-muted-foreground mt-10 max-w-md mx-auto"
+        >
+          FashionHub is a final year project built for CS619, not a live commercial platform.
+        </motion.p>
       </section>
     </main>
   );

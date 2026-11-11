@@ -3,12 +3,16 @@
 import { motion } from 'framer-motion';
 import { RootState } from '@/redux/store';
 import { useRouter } from 'next/navigation';
-import { logout } from '@/redux/slices/features/auth/authSlice';
-import { FiMail, FiPhone, FiMapPin, FiLogOut } from 'react-icons/fi';
-import { useState } from 'react';
+import { setUser } from '@/redux/slices/features/auth/authSlice';
+import { FiCamera, FiMail } from 'react-icons/fi';
+import { useRef, useState } from 'react';
 import { BackButton } from '@/components/Reusable_Components/BackButton';
+import { ChangePasswordForm } from '@/components/Reusable_Components/ChangePasswordForm';
+import { RecoveryQuestionForm } from '@/components/Reusable_Components/RecoveryQuestionForm';
 import { SupplierProfileForm } from '@/components/Reusable_Components/SupplierProfileForm';
 import { useAppDispatch, useAppSelector } from '@/hooks/redux';
+import { updateAvatar, updateProfile } from '@/services/auth.services';
+import { getErrorMessage } from '@/lib/utils';
 
 
 const containerVariants = {
@@ -25,30 +29,46 @@ export default function SupplierProfilePage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const auth = useAppSelector((state: RootState) => state.auth);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [profileError, setProfileError] = useState('');
 
   if (!auth.isAuthenticated || auth.user?.role !== 'supplier') {
     router.push('/login');
     return null;
   }
 
-  const handleLogout = () => {
-    dispatch(logout());
-    router.push('/');
+  const handleSaveProfile = async (formData: {
+    fullName: string;
+    email: string;
+  }) => {
+    const updatedUser = await updateProfile(formData);
+    dispatch(setUser(updatedUser));
   };
 
-  const handleSaveProfile = async (formData: {
-    businessName: string;
-    category: string;
-    email: string;
-    phone: string;
-    address: string;
-  }) => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // TODO: add API call for profile update.
-    console.log('Profile saved', formData);
+  const handleAvatarPick = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      setProfileError('Choose a JPG, PNG, WebP, or GIF image.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setProfileError('Profile images must be 5 MB or smaller.');
+      return;
+    }
+    setProfileError('');
+    setIsUploadingAvatar(true);
+    try {
+      const avatar = await updateAvatar(file);
+      if (auth.user) dispatch(setUser({ ...auth.user, avatar }));
+    } catch (error) {
+      setProfileError(getErrorMessage(error, 'Unable to update your photo.'));
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   };
 
   return (
@@ -62,7 +82,7 @@ export default function SupplierProfilePage() {
         >
           <BackButton fallbackHref="/supplier/dashboard" />
           <h1 className="text-4xl font-bold mb-2">Supplier Profile</h1>
-          <p className="text-muted-foreground">Manage your business information</p>
+          <p className="text-muted-foreground">Manage your account information</p>
         </motion.div>
 
         <motion.div
@@ -71,21 +91,46 @@ export default function SupplierProfilePage() {
           animate="visible"
           className="space-y-6"
         >
+          {profileError && <p role="alert" className="text-sm text-destructive">{profileError}</p>}
           {!isEditing ? (
             <>
               {/* Profile Card */}
-              <motion.div variants={itemVariants} className="bg-card rounded-lg shadow-sm overflow-hidden">
+              <motion.div variants={itemVariants} className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
                 <div className="p-8 border-b border-border">
                   <div className="flex flex-col md:flex-row gap-6 md:items-center">
-                    <img
-                      src={auth.user?.avatar}
-                      alt={auth.user?.name}
-                      className="w-24 h-24 rounded-lg object-cover"
-                    />
+                    <div className="relative w-24 h-24 shrink-0">
+                      {auth.user?.avatar ? (
+                        <img
+                          src={auth.user.avatar}
+                          alt={auth.user.fullName}
+                          className="w-24 h-24 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="w-24 h-24 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-2xl font-semibold">
+                          {auth.user?.fullName?.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => avatarInputRef.current?.click()}
+                        disabled={isUploadingAvatar}
+                        aria-label={isUploadingAvatar ? 'Uploading profile photo' : 'Change profile photo'}
+                        className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center ring-2 ring-background disabled:opacity-50"
+                      >
+                        <FiCamera className="w-4 h-4" />
+                      </button>
+                      <input
+                        ref={avatarInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        onChange={handleAvatarPick}
+                        className="hidden"
+                      />
+                    </div>
                     <div className="flex-1">
-                      <h2 className="text-2xl font-bold mb-2">{auth.user?.name}</h2>
+                      <h2 className="text-2xl font-bold mb-2">{auth.user?.fullName}</h2>
                       <p className="text-muted-foreground mb-1">{auth.user?.email}</p>
-                      <p className="text-sm text-primary font-medium">Verified Supplier</p>
+                      <p className="text-sm text-primary font-medium">Supplier account</p>
                     </div>
                     <button
                       onClick={() => setIsEditing(true)}
@@ -96,25 +141,21 @@ export default function SupplierProfilePage() {
                   </div>
                 </div>
 
-                {/* Business Info */}
+                {/* Account Info */}
                 <div className="p-8">
-                  <h3 className="text-lg font-semibold mb-6">Business Information</h3>
+                  <h3 className="text-lg font-semibold mb-6">Account Information</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Business Name</p>
-                      <p className="font-medium">{auth.user?.businessName || 'Premium Fashion Co.'}</p>
+                      <p className="text-sm text-muted-foreground mb-1">Full name</p>
+                      <p className="font-medium">{auth.user?.fullName}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Category</p>
-                      <p className="font-medium">{auth.user?.category || 'Fashion & Clothing'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Active Since</p>
-                      <p className="font-medium">{auth.user?.joinedDate || 'January 2023'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Rating</p>
-                      <p className="font-medium">4.8/5.0 (342 reviews)</p>
+                      <p className="text-sm text-muted-foreground mb-1">Member since</p>
+                      <p className="font-medium">
+                        {auth.user?.createdAt && !Number.isNaN(Date.parse(auth.user.createdAt))
+                          ? new Date(auth.user.createdAt).toLocaleDateString()
+                          : 'Not available'}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -132,62 +173,18 @@ export default function SupplierProfilePage() {
                         <p className="font-medium">{auth.user?.email}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                        <FiPhone className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Phone</p>
-                        <p className="font-medium">{auth.user?.phone || '+1 (555) 987-6543'}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                        <FiMapPin className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Address</p>
-                        <p className="font-medium">{auth.user?.address || '456 Business Ave, Fashion City, FC 12345'}</p>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </motion.div>
 
-              {/* Account Settings */}
-              <motion.div variants={itemVariants} className="bg-card rounded-lg shadow-sm p-8">
-                <h3 className="text-lg font-semibold mb-6">Account Settings</h3>
-                <div className="space-y-4">
-                  <button className="w-full text-left px-4 py-3 hover:bg-secondary rounded-lg transition">
-                    Change Password
-                  </button>
-                  <button className="w-full text-left px-4 py-3 hover:bg-secondary rounded-lg transition">
-                    Bank Account Settings
-                  </button>
-                  <button className="w-full text-left px-4 py-3 hover:bg-secondary rounded-lg transition">
-                    Tax Information
-                  </button>
-                </div>
-              </motion.div>
-
-              {/* Logout Button */}
-              <motion.button
-                variants={itemVariants}
-                onClick={handleLogout}
-                className="w-full px-6 py-4 bg-destructive text-white rounded-lg hover:opacity-90 transition font-medium flex items-center justify-center gap-2"
-              >
-                <FiLogOut className="w-5 h-5" />
-                Logout
-              </motion.button>
+              <ChangePasswordForm />
+              <RecoveryQuestionForm />
             </>
           ) : (
             <SupplierProfileForm
               initialData={{
-                businessName: auth.user?.businessName || 'Premium Fashion Co.',
-                category: auth.user?.category || 'Fashion & Clothing',
+                fullName: auth.user?.fullName || '',
                 email: auth.user?.email || '',
-                phone: auth.user?.phone || '+1 (555) 987-6543',
-                address: auth.user?.address || '456 Business Ave, Fashion City, FC 12345',
               }}
               onSave={handleSaveProfile}
               onCancel={() => setIsEditing(false)}
@@ -198,4 +195,3 @@ export default function SupplierProfilePage() {
     </main>
   );
 }
-
