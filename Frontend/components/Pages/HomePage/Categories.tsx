@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { FiArrowUpRight } from 'react-icons/fi';
-
+import { useAppSelector } from '@/hooks/redux';
+import { RootState } from '@/redux/store';
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -27,46 +28,24 @@ const itemVariants = {
   },
 };
 
-const categories = [
-  {
-    name: 'Jackets',
-    count: '234 items',
-    image:
-      'https://images.unsplash.com/photo-1727515192207-3dc860bfd773?q=80&w=1200&auto=format&fit=crop',
-  },
-  {
-    name: 'Dresses',
-    count: '456 items',
-    image:
-      'https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?q=80&w=1200&auto=format&fit=crop',
-  },
-  {
-    name: 'Shoes',
-    count: '567 items',
-    image:
-      'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=1200&auto=format&fit=crop',
-  },
-  {
-    name: 'Sweaters',
-    count: '189 items',
-    image:
-      'https://plus.unsplash.com/premium_photo-1673125287084-e90996bad505?q=80&w=1200&auto=format&fit=crop',
-  },
-  {
-    name: 'Accessories',
-    count: '345 items',
-    image:
-      'https://images.unsplash.com/photo-1604306354577-68136efdf03b?q=80&w=1200&auto=format&fit=crop',
-  },
-  {
-    name: 'Shirts',
-    count: '123 items',
-    image:
-      'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=1200&auto=format&fit=crop',
-  },
-];
-
 export default function Categories() {
+  const products = useAppSelector((state: RootState) => state.products);
+  
+    const categoryMap = products.items.reduce((acc, product) => {
+      const key = product.category;
+      if (!acc[key]) {
+        acc[key] = { count: 0, image: product.image };
+      }
+      acc[key].count += 1;
+      return acc;
+    }, {} as Record<string, { count: number; image: string }>);
+  
+    const categories = Object.entries(categoryMap).map(([name, data]) => ({
+      name: name.charAt(0).toUpperCase() + name.slice(1),
+      slug: name,
+      count: data.count,
+      image: data.image,
+    }));
   return (
     <section className="bg-background pt-20 md:pt-24 px-4 sm:px-6 ">
       <div className="mx-auto max-w-7xl">
@@ -92,7 +71,9 @@ export default function Categories() {
 
               className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-4"
             >
-              Shop by category
+              Shop by   <span className="text-primary">
+              category  </span>
+
             </motion.h2>
 
             <motion.p
@@ -129,7 +110,7 @@ export default function Categories() {
               variants={itemVariants}
             >
               <Link
-                href={`/categories?category=${category.name.toLowerCase()}`}
+                href={`/shop?category=${category.slug}`}
                 className="group relative block h-[280px] overflow-hidden rounded-2xl bg-muted sm:h-[320px]"
               >
                 {/* Image */}

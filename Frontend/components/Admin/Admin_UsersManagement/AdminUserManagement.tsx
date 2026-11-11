@@ -1,21 +1,21 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useSelector } from 'react-redux';
+import { useAppSelector } from '@/hooks/redux';
 import { RootState } from '@/redux/store';
 import { useRouter } from 'next/navigation';
-import { FiSearch, FiTrash2, FiEdit, FiCheckCircle } from 'react-icons/fi';
+import { FiSearch, FiCheckCircle } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
-import { UserEditModal } from '@/components/modals/UserEditModal';
 import { BackButton } from '@/components/Reusable_Components/BackButton';
+import { getUsers, setUserActive, type AdminUser } from '@/services/management.services';
 
 interface User {
-  id: number;
-  name: string;
+  id: string;
+  fullName: string;
   email: string;
   role: 'customer' | 'supplier' | 'admin';
-  status: 'active' | 'inactive';
-  joined: string;
+  isActive: boolean;
+  createdAt: string;
 }
 
 const containerVariants = {
@@ -28,29 +28,36 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-const mockUsers: User[] = [
-  { id: 1, name: 'John Doe', email: 'john@example.com', role: 'customer', status: 'active', joined: '2024-01-15' },
-  { id: 2, name: 'Sarah Smith', email: 'sarah@example.com', role: 'supplier', status: 'active', joined: '2024-02-20' },
-  { id: 3, name: 'Mike Johnson', email: 'mike@example.com', role: 'customer', status: 'inactive', joined: '2024-03-10' },
-  { id: 4, name: 'Emma Davis', email: 'emma@example.com', role: 'customer', status: 'active', joined: '2024-04-05' },
-  { id: 5, name: 'James Wilson', email: 'james@example.com', role: 'supplier', status: 'active', joined: '2024-05-12' },
-];
-
 export default function AdminUsersManagementPage() {
   const router = useRouter();
-  const auth = useSelector((state: RootState) => state.auth);
+  const auth = useAppSelector((state: RootState) => state.auth);
   const [searchTerm, setSearchTerm] = useState('');
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [users, setUsers] = useState<User[]>([]);
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [requestError, setRequestError] = useState('');
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!auth.isAuthenticated || auth.user?.role !== 'admin') {
       router.push('/login');
     } else {
       setIsAuthorized(true);
+      let active = true;
+      getUsers()
+        .then((data: AdminUser[]) => {
+          if (active) setUsers(data.map((user) => ({
+            id: user._id,
+            fullName: user.fullName,
+            email: user.email,
+            role: user.role,
+            isActive: user.isActive,
+            createdAt: user.createdAt,
+          })));
+        })
+        .catch((error: unknown) => {
+          if (active) setRequestError(error instanceof Error ? error.message : 'Unable to load users.');
+        });
+      return () => { active = false; };
     }
   }, [auth.isAuthenticated, auth.user?.role, router]);
 
@@ -60,22 +67,23 @@ export default function AdminUsersManagementPage() {
 
   const filteredUsers = users.filter(
     (user) =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleEdit = (user: User) => {
-    setEditingUser(user);
-    setIsModalOpen(true);
-  };
-
-  const handleSaveUser = (updatedUser: User) => {
-    setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
-  };
-
-  const handleDeleteUser = (id: number) => {
-    setUsers(users.filter(u => u.id !== id));
-    setDeletingId(null);
+  const handleStatusToggle = async (user: User) => {
+    setUpdatingId(user.id);
+    setRequestError('');
+    try {
+      const updated = await setUserActive(user.id, !user.isActive);
+      setUsers((current) => current.map((item) => item.id === user.id
+        ? { ...item, isActive: updated.isActive }
+        : item));
+    } catch (error) {
+      setRequestError(error instanceof Error ? error.message : 'Unable to update user status.');
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
   return (
@@ -91,6 +99,8 @@ export default function AdminUsersManagementPage() {
           <h1 className="text-4xl font-bold mb-2">User Management</h1>
           <p className="text-muted-foreground">Manage all platform users</p>
         </motion.div>
+
+        {requestError && <p role="alert" className="mb-6 text-sm text-destructive">{requestError}</p>}
 
         {/* Search */}
         <motion.div
@@ -136,7 +146,7 @@ export default function AdminUsersManagementPage() {
                     variants={itemVariants}
                     className="border-b border-border hover:bg-secondary transition"
                   >
-                    <td className="px-6 py-4 font-medium">{user.name}</td>
+                    <td className="px-6 py-4 font-medium">{user.fullName}</td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">{user.email}</td>
                     <td className="px-6 py-4 text-sm">
                       <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold capitalize">
@@ -145,29 +155,24 @@ export default function AdminUsersManagementPage() {
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${user.status === 'active'
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${user.isActive
                             ? 'bg-green-100 text-green-800'
                             : 'bg-gray-100 text-gray-800'
                           }`}
                       >
-                        {user.status}
+                        {user.isActive ? 'active' : 'suspended'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">
-                      {new Date(user.joined).toLocaleDateString()}
+                      {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 flex gap-2">
                       <button
-                        onClick={() => handleEdit(user)}
-                        className="p-2 hover:bg-border rounded-lg transition text-primary hover:text-accent"
+                        onClick={() => void handleStatusToggle(user)}
+                        disabled={updatingId === user.id}
+                        className="px-3 py-1 hover:bg-border rounded-lg transition text-primary hover:text-accent disabled:opacity-50"
                       >
-                        <FiEdit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setDeletingId(user.id)}
-                        className="p-2 hover:bg-destructive/10 rounded-lg transition text-destructive"
-                      >
-                        <FiTrash2 className="w-4 h-4" />
+                        {updatingId === user.id ? 'Saving...' : user.isActive ? 'Suspend' : 'Activate'}
                       </button>
                     </td>
                   </motion.tr>
@@ -177,62 +182,12 @@ export default function AdminUsersManagementPage() {
           </div>
         </motion.div>
 
-        {/* Pagination */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex justify-between items-center mt-8"
-        >
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-8">
           <p className="text-sm text-muted-foreground">
-            Showing {filteredUsers.length} of {mockUsers.length} users
+            Showing {filteredUsers.length} users
           </p>
-          <div className="flex gap-2">
-            <button className="px-4 py-2 border border-border rounded-lg hover:bg-secondary transition">
-              Previous
-            </button>
-            <button className="px-4 py-2 border border-border rounded-lg hover:bg-secondary transition">
-              Next
-            </button>
-          </div>
         </motion.div>
 
-        {/* User Edit Modal */}
-        <UserEditModal
-          isOpen={isModalOpen}
-          user={editingUser}
-          onClose={() => setIsModalOpen(false)}
-          onSave={handleSaveUser}
-        />
-
-        {/* Delete Confirmation */}
-        {deletingId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-card rounded-lg shadow-xl max-w-sm w-full mx-4 p-6 border border-border"
-            >
-              <h3 className="text-lg font-bold mb-2">Delete User</h3>
-              <p className="text-muted-foreground mb-6">
-                Are you sure you want to delete this user? This action cannot be undone.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setDeletingId(null)}
-                  className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-secondary transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => deletingId && handleDeleteUser(deletingId)}
-                  className="flex-1 px-4 py-2 bg-destructive text-white rounded-lg hover:opacity-90 transition"
-                >
-                  Delete
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
       </div>
     </main>
   );

@@ -43,7 +43,7 @@ export function Footer() {
     accountLinks = [
       { label: 'Dashboard', href: '/admin/dashboard' },
       { label: 'Manage Users', href: '/admin/users' },
-      { label: 'Reports', href: '/admin/reports' },
+      { label: 'Orders', href: '/admin/orders' },
     ];
   }
 
@@ -84,7 +84,7 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/wishlist" className="text-zinc-400 hover:text-primary transition-colors">
+                <Link href="/customer/wishlist" className="text-zinc-400 hover:text-primary transition-colors">
                   Wishlist
                 </Link>
               </li>

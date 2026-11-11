@@ -84,7 +84,7 @@ function QuoteCard({ item }: { item: RoleQuote }) {
   const Icon = item.icon;
   const style = roleStyles[item.role];
   return (
-    <div className="flex-shrink-0 w-80 rounded-2xl border border-border bg-card px-6 py-6 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+    <div className="flex-shrink-0 w-80 rounded-2xl border border-border bg-card px-6 py-6 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer">
       <p className="text-sm text-foreground leading-relaxed mb-5 min-h-[60px]">
         {item.quote}
       </p>
@@ -111,9 +111,7 @@ export function TestimonialsSection() {
 
   return (
     <section className="py-20 px-4 sm:px-6 lg:px-8 bg-background relative overflow-hidden">
-      {/* Decorative background blobs for depth */}
-
-
+  
       <div className="max-w-7xl mx-auto relative">
         {/* Header */}
         <motion.div
@@ -167,29 +165,27 @@ export function TestimonialsSection() {
           </div>
         </div>
 
-        {/* Honest platform highlights instead of fake stats */}
-        {/* Honest platform highlights instead of fake stats */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className="grid grid-cols-1 sm:grid-cols-3 gap-8 mt-20 text-center"
         >
-          <div className="group flex flex-col items-center">
+          <div className="group flex flex-col items-center cursor-pointer">
             <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3 transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-105">
               <FiUser className="w-5 h-5" />
             </div>
             <p className="text-2xl font-bold text-foreground">3 Roles</p>
             <p className="text-muted-foreground mt-1">Customer, Supplier & Admin</p>
           </div>
-          <div className="group flex flex-col items-center">
+          <div className="group flex flex-col items-center cursor-pointer">
             <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3 transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-105">
               <FiShield className="w-5 h-5" />
             </div>
             <p className="text-2xl font-bold text-foreground">Verified</p>
             <p className="text-muted-foreground mt-1">Suppliers reviewed before listing</p>
           </div>
-          <div className="group flex flex-col items-center">
+          <div className="group flex flex-col items-center cursor-pointer">
             <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3 transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground group-hover:scale-105">
               <FiLock className="w-5 h-5" />
             </div>

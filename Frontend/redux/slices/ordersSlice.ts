@@ -13,22 +13,7 @@ interface OrdersState {
 }
 
 const initialState: OrdersState = {
-  items: [
-    {
-      id: 'ORD-001',
-      date: '2024-05-15',
-      total: 259.98,
-      status: 'delivered',
-      items: [{ id: '1', name: 'Premium Denim Jacket', quantity: 2 }],
-    },
-    {
-      id: 'ORD-002',
-      date: '2024-05-20',
-      total: 199.99,
-      status: 'shipped',
-      items: [{ id: '2', name: 'Silk Evening Dress', quantity: 1 }],
-    },
-  ],
+  items: [],
 };
 
 const ordersSlice = createSlice({

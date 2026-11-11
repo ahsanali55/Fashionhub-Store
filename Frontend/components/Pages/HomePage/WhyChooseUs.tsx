@@ -94,7 +94,7 @@ export default function WhyChooseUs() {
               <motion.div
                 key={item.title}
                 variants={itemVariants}
-                className="group relative p-7 bg-card border border-border rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+                className="group relative p-7 bg-card border border-border rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer"
               >
                 {/* Icon */}
                 <div

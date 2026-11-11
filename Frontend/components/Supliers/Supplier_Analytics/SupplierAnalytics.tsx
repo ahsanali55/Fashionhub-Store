@@ -1,9 +1,15 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { FiTrendingUp, FiUsers, FiDollarSign, FiShoppingCart } from 'react-icons/fi';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { FiTrendingUp, FiBox, FiDollarSign, FiShoppingCart } from 'react-icons/fi';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { BackButton } from '@/components/Reusable_Components/BackButton';
+import { getSupplierAnalytics, type SupplierAnalytics } from '@/services/management.services';
+import { getSupplierOrders, type Order } from '@/services/commerce.services';
+import { useAppSelector } from '@/hooks/redux';
+import type { RootState } from '@/redux/store';
+import { formatPrice } from '@/lib/utils';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -18,29 +24,69 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-// Sample data
-const revenueData = [
-  { month: 'Jan', revenue: 4000, orders: 24 },
-  { month: 'Feb', revenue: 3000, orders: 21 },
-  { month: 'Mar', revenue: 2000, orders: 29 },
-  { month: 'Apr', revenue: 2780, orders: 39 },
-  { month: 'May', revenue: 1890, orders: 23 },
-  { month: 'Jun', revenue: 2390, orders: 34 },
-];
-
-const categoryData = [
-  { name: 'Jackets', value: 35 },
-  { name: 'Dresses', value: 25 },
-  { name: 'Shoes', value: 20 },
-  { name: 'Others', value: 20 },
-];
-
 const COLORS = ['#d946ef', '#ec4899', '#f43f5e', '#0ea5e9'];
 
 export default function SupplierAnalyticsPage() {
+  const auth = useAppSelector((state: RootState) => state.auth);
+  const products = useAppSelector((state: RootState) => state.products.items);
+  const [analytics, setAnalytics] = useState<SupplierAnalytics | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [requestError, setRequestError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([getSupplierAnalytics(), getSupplierOrders()])
+      .then(([metrics, supplierOrders]) => {
+        if (!active) return;
+        setAnalytics(metrics);
+        setOrders(supplierOrders);
+      })
+      .catch((error: unknown) => {
+        if (active) setRequestError(error instanceof Error ? error.message : 'Unable to load analytics.');
+      })
+      .finally(() => { if (active) setIsLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  const revenueData = useMemo(() => {
+    const monthly = new Map<string, { month: string; revenue: number; orders: number; timestamp: number }>();
+    for (const order of orders) {
+      const date = new Date(order.createdAt);
+      if (Number.isNaN(date.getTime())) continue;
+      const month = date.toLocaleString('en-PK', { month: 'short', year: 'numeric' });
+      const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+      const current = monthly.get(monthKey) ?? { month, revenue: 0, orders: 0, timestamp: date.getTime() };
+      current.revenue += order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      current.orders += 1;
+      current.timestamp = Math.max(current.timestamp, date.getTime());
+      monthly.set(monthKey, current);
+    }
+    return [...monthly.values()].sort((a, b) => a.timestamp - b.timestamp).slice(-6);
+  }, [orders]);
+
+  const categoryData = useMemo(() => {
+    const categorySales = new Map<string, number>();
+    for (const order of orders) {
+      for (const item of order.items) {
+        const category = products.find((product) => product.id === item.productId)?.category ?? 'Other';
+        categorySales.set(category, (categorySales.get(category) ?? 0) + item.quantity);
+      }
+    }
+    return [...categorySales].map(([name, value]) => ({ name, value }));
+  }, [orders, products]);
+
+  if (isLoading) {
+    return (
+      <main className="flex min-h-[calc(100vh-12rem)] items-center justify-center">
+        <p className="text-sm text-muted-foreground">Loading analytics...</p>
+      </main>
+    );
+  }
+
   return (
-    <main className="bg-background min-h-screen py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-muted/30 py-8 sm:py-10">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -48,60 +94,38 @@ export default function SupplierAnalyticsPage() {
           className="mb-8"
         >
           <BackButton fallbackHref="/supplier/dashboard" />
-          <h1 className="text-4xl font-bold">Analytics & Reports</h1>
-          <p className="text-muted-foreground mt-2">Track your sales performance and customer insights</p>
+          <h1 className="text-4xl font-bold">Analytics</h1>
+          <p className="text-muted-foreground mt-2">Track your product sales and fulfillment.</p>
         </motion.div>
+
+        {requestError && <p role="alert" className="mb-6 text-sm text-destructive">{requestError}</p>}
 
         {/* Key Metrics */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
+          className="mb-8 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4"
         >
-          <motion.div variants={itemVariants} className="bg-card p-6 rounded-lg shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Total Revenue</p>
-                <p className="text-4xl font-bold mt-2">$18,140</p>
-                <p className="text-green-600 text-sm mt-2">+12% from last month</p>
+          {[
+            { label: 'Total revenue', value: analytics ? formatPrice(analytics.totalRevenue) : '—', note: 'Revenue from your products', icon: FiDollarSign },
+            { label: 'Total orders', value: analytics?.totalOrders ?? '—', note: 'Orders containing your products', icon: FiShoppingCart },
+            { label: 'Items sold', value: analytics?.totalItemsSold ?? '—', note: 'Total units sold', icon: FiBox },
+            { label: 'Average product rating', value: analytics ? `${analytics.averageRating.toFixed(1)} / 5` : '—', note: 'Across your products', icon: FiTrendingUp },
+          ].map(({ label, value, note, icon: Icon }) => (
+            <motion.article key={label} variants={itemVariants} className="flex min-h-40 flex-col justify-between rounded-xl border border-border bg-card p-6 shadow-sm">
+              <div className="flex h-10 items-start justify-between gap-3">
+                <p className="text-sm font-medium leading-5 text-muted-foreground">{label}</p>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Icon className="h-5 w-5" />
+                </span>
               </div>
-              <FiDollarSign className="w-12 h-12 text-primary opacity-20" />
-            </div>
-          </motion.div>
-
-          <motion.div variants={itemVariants} className="bg-card p-6 rounded-lg shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Total Orders</p>
-                <p className="text-4xl font-bold mt-2">456</p>
-                <p className="text-green-600 text-sm mt-2">+8% from last month</p>
+              <div className="min-w-0">
+                <p className="truncate text-2xl font-bold leading-tight tracking-tight tabular-nums sm:text-3xl" title={typeof value === 'string' ? value : undefined}>{value}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{note}</p>
               </div>
-              <FiShoppingCart className="w-12 h-12 text-accent opacity-20" />
-            </div>
-          </motion.div>
-
-          <motion.div variants={itemVariants} className="bg-card p-6 rounded-lg shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Total Customers</p>
-                <p className="text-4xl font-bold mt-2">1,234</p>
-                <p className="text-green-600 text-sm mt-2">+15% from last month</p>
-              </div>
-              <FiUsers className="w-12 h-12 text-primary opacity-20" />
-            </div>
-          </motion.div>
-
-          <motion.div variants={itemVariants} className="bg-card p-6 rounded-lg shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground text-sm">Avg Order Value</p>
-                <p className="text-4xl font-bold mt-2">$39.78</p>
-                <p className="text-green-600 text-sm mt-2">+5% from last month</p>
-              </div>
-              <FiTrendingUp className="w-12 h-12 text-accent opacity-20" />
-            </div>
-          </motion.div>
+            </motion.article>
+          ))}
         </motion.div>
 
         {/* Charts */}
@@ -109,33 +133,47 @@ export default function SupplierAnalyticsPage() {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-1 lg:grid-cols-2 gap-8"
+          className="grid grid-cols-1 gap-5 lg:grid-cols-2"
         >
           {/* Revenue Chart */}
           <motion.div
             variants={itemVariants}
-            className="bg-card p-6 rounded-lg shadow-sm"
+            className="rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6"
           >
-            <h3 className="text-xl font-bold mb-4">Revenue & Orders</h3>
+            <h3 className="text-lg font-bold">Monthly sales performance</h3>
+            <p className="mb-4 mt-1 text-sm text-muted-foreground">Revenue and order volume</p>
+            {revenueData.length ? (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={revenueData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
+                <YAxis
+                  yAxisId="revenue"
+                  tickFormatter={(value) => formatPrice(Number(value))}
+                />
+                <YAxis yAxisId="orders" orientation="right" allowDecimals={false} />
+                <Tooltip
+                  formatter={(value, name) => [
+                    name === 'revenue' ? formatPrice(Number(value)) : value,
+                    name === 'revenue' ? 'Revenue' : 'Orders',
+                  ]}
+                />
                 <Legend />
-                <Line type="monotone" dataKey="revenue" stroke="#d946ef" strokeWidth={2} />
-                <Line type="monotone" dataKey="orders" stroke="#ec4899" strokeWidth={2} />
+                <Line yAxisId="revenue" type="monotone" dataKey="revenue" stroke="#d946ef" strokeWidth={2} />
+                <Line yAxisId="orders" type="monotone" dataKey="orders" stroke="#ec4899" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
+            ) : <p className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">Sales trends will appear after your first order.</p>}
           </motion.div>
 
           {/* Category Sales */}
           <motion.div
             variants={itemVariants}
-            className="bg-card p-6 rounded-lg shadow-sm"
+            className="rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6"
           >
-            <h3 className="text-xl font-bold mb-4">Sales by Category</h3>
+            <h3 className="text-lg font-bold">Units sold by category</h3>
+            <p className="mb-4 mt-1 text-sm text-muted-foreground">Sales across your product categories</p>
+            {categoryData.length ? (
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -143,7 +181,7 @@ export default function SupplierAnalyticsPage() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, value }) => `${name}: ${value}%`}
+                  label={({ name, value }) => `${name}: ${value}`}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
@@ -155,26 +193,9 @@ export default function SupplierAnalyticsPage() {
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
+            ) : <p className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">Category sales will appear after your first order.</p>}
           </motion.div>
 
-          {/* Monthly Revenue */}
-          <motion.div
-            variants={itemVariants}
-            className="bg-card p-6 rounded-lg shadow-sm lg:col-span-2"
-          >
-            <h3 className="text-xl font-bold mb-4">Monthly Revenue Comparison</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="revenue" fill="#d946ef" />
-                <Bar dataKey="orders" fill="#ec4899" />
-              </BarChart>
-            </ResponsiveContainer>
-          </motion.div>
         </motion.div>
       </div>
     </main>

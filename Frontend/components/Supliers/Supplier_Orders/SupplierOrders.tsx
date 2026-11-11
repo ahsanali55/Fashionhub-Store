@@ -1,13 +1,14 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useSelector } from 'react-redux';
+import { useAppSelector } from '@/hooks/redux';
 import { RootState } from '@/redux/store';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { FiPackage, FiTruck, FiCheckCircle } from 'react-icons/fi';
 import { BackButton } from '@/components/Reusable_Components/BackButton';
 import { LoadingSpinner } from '@/components/Admin/Loaders/LoadingSpinner';
+import { getSupplierOrders, updateOrderItemStatus, type Order } from '@/services/commerce.services';
+import { formatPrice } from '@/lib/utils';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -21,10 +22,13 @@ const itemVariants = {
 
 export default function SupplierOrdersPage() {
   const router = useRouter();
-  const auth = useSelector((state: RootState) => state.auth);
-  const orders = useSelector((state: RootState) => state.orders);
+  const auth = useAppSelector((state: RootState) => state.auth);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState('All');
+  const [updatingItem, setUpdatingItem] = useState<string | null>(null);
+  const [requestError, setRequestError] = useState('');
 
   useEffect(() => {
     if (!auth.isAuthenticated || auth.user?.role !== 'supplier') {
@@ -32,8 +36,18 @@ export default function SupplierOrdersPage() {
       return;
     }
     setIsAuthorized(true);
-    const timer = setTimeout(() => setIsLoading(false), 400);
-    return () => clearTimeout(timer);
+    let active = true;
+    getSupplierOrders()
+      .then((response) => {
+        if (active) setOrders(response);
+      })
+      .catch((error: unknown) => {
+        if (active) setRequestError(error instanceof Error ? error.message : 'Unable to load supplier orders.');
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => { active = false; };
   }, [auth.isAuthenticated, auth.user?.role, router]);
 
   if (!isAuthorized) {
@@ -49,6 +63,34 @@ export default function SupplierOrdersPage() {
     processing: 'bg-blue-100 text-blue-800',
     shipped: 'bg-purple-100 text-purple-800',
     delivered: 'bg-green-100 text-green-800',
+  };
+
+  const filteredOrders = selectedStatus === 'All'
+    ? orders
+    : orders.filter((order) => order.items.some(
+      (item) => (item.status ?? order.status).toLowerCase() === selectedStatus.toLowerCase(),
+    ));
+
+  const handleStatusUpdate = async (
+    orderId: string,
+    productId: string,
+    status: 'pending' | 'processing' | 'shipped' | 'delivered',
+  ) => {
+    const key = `${orderId}:${productId}`;
+    setUpdatingItem(key);
+    setRequestError('');
+    try {
+      const updatedOrder = await updateOrderItemStatus(orderId, productId, status);
+      setOrders((current) => current.map((order) => order._id !== orderId ? order : {
+        ...order,
+        status: updatedOrder.status,
+        items: order.items.map((item) => item.productId === productId ? { ...item, status } : item),
+      }));
+    } catch (error) {
+      setRequestError(error instanceof Error ? error.message : 'Unable to update order item.');
+    } finally {
+      setUpdatingItem(null);
+    }
   };
 
   return (
@@ -74,7 +116,8 @@ export default function SupplierOrdersPage() {
           {['All', 'Pending', 'Processing', 'Shipped', 'Delivered'].map((status) => (
             <button
               key={status}
-              className="px-4 py-2 rounded-lg bg-secondary hover:bg-primary hover:text-white transition font-medium text-sm flex-shrink-0"
+              onClick={() => setSelectedStatus(status)}
+              className={`px-4 py-2 rounded-lg transition font-medium text-sm flex-shrink-0 ${selectedStatus === status ? 'bg-primary text-white' : 'bg-secondary hover:bg-primary hover:text-white'}`}
             >
               {status}
             </button>
@@ -93,39 +136,54 @@ export default function SupplierOrdersPage() {
               <thead>
                 <tr className="border-b border-border bg-secondary">
                   <th className="px-6 py-4 text-left text-sm font-semibold">Order ID</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Customer</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Items</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Amount</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold">Product</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold">Quantity</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold">Item Amount</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Status</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {orders.items.map((order) => (
-                  <motion.tr
-                    key={order.id}
-                    variants={itemVariants}
-                    className="border-b border-border hover:bg-secondary transition"
-                  >
-                    <td className="px-6 py-4 font-semibold">#{order.id}</td>
-                    <td className="px-6 py-4 text-sm">Customer #{Math.floor(Math.random() * 10000)}</td>
-                    <td className="px-6 py-4 text-sm">{order.items.length} items</td>
-                    <td className="px-6 py-4 font-semibold text-primary">${order.total.toFixed(2)}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${statusColors[order.status]}`}>
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <button className="text-primary hover:text-accent font-medium text-sm transition">
-                        Update
-                      </button>
-                    </td>
-                  </motion.tr>
-                ))}
+                {filteredOrders.flatMap((order) => order.items.map((item) => {
+                  const status = (item.status ?? order.status ?? 'pending') as 'pending' | 'processing' | 'shipped' | 'delivered';
+                  const itemKey = `${order._id}:${item.productId}`;
+                  return (
+                    <motion.tr key={itemKey} variants={itemVariants} className="border-b border-border hover:bg-secondary transition">
+                      <td className="px-6 py-4 font-semibold">#{order._id}</td>
+                      <td className="px-6 py-4 text-sm">{item.name}</td>
+                      <td className="px-6 py-4 text-sm">{item.quantity}</td>
+                      <td className="px-6 py-4 font-semibold text-primary">{formatPrice(item.price * item.quantity)}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${statusColors[status]}`}>
+                          {status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {status === 'delivered' ? (
+                          <span className="text-sm text-muted-foreground">Complete</span>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={updatingItem === itemKey}
+                            onClick={() => void handleStatusUpdate(
+                              order._id,
+                              item.productId,
+                              ({ pending: 'processing', processing: 'shipped', shipped: 'delivered' } as const)[status],
+                            )}
+                            className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                            aria-label={`Advance ${item.name} from ${status}`}
+                          >
+                            {updatingItem === itemKey ? 'Updating...' : `Mark ${status === 'pending' ? 'processing' : status === 'processing' ? 'shipped' : 'delivered'}`}
+                          </button>
+                        )}
+                      </td>
+                    </motion.tr>
+                  );
+                }))}
               </tbody>
             </table>
           </div>
+          {requestError && <p role="alert" className="px-6 py-4 text-sm text-destructive">{requestError}</p>}
         </motion.div>
       </div>
     </main>

@@ -11,6 +11,9 @@ node_modules/
 dist/
 build/
 
+# Locally uploaded images
+/Backend/uploads/
+
 # System files
 .DS_Store
 Thumbs.db

@@ -1,9 +1,14 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState } from 'react';
-import { FiArrowLeft, FiPlus, FiImage, FiDollarSign, FiHash } from 'react-icons/fi';
+import { useEffect, useState } from 'react';
+import { FiArrowLeft, FiPlus, FiImage, FiHash } from 'react-icons/fi';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { createProduct, getCategories } from '@/services/management.services';
+import { useAppDispatch } from '@/hooks/redux';
+import { loadProducts } from '@/redux/slices/productsSlice';
+import { getErrorMessage } from '@/lib/utils';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -19,14 +24,38 @@ const itemVariants = {
 };
 
 export default function SupplierAddProductPage() {
+  const router = useRouter();
+  const dispatch = useAppDispatch();
   const [formData, setFormData] = useState({
     name: '',
     category: '',
     price: '',
     stock: '',
     description: '',
-    image: '',
   });
+  const [image, setImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [categories, setCategories] = useState<Array<{ _id: string; name: string }>>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    getCategories()
+      .then(setCategories)
+      .catch((requestError: unknown) => {
+        setError(requestError instanceof Error ? requestError.message : 'Unable to load categories.');
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!image) {
+      setImagePreview('');
+      return;
+    }
+    const previewUrl = URL.createObjectURL(image);
+    setImagePreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [image]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({
@@ -35,9 +64,39 @@ export default function SupplierAddProductPage() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Product added successfully!');
+    const price = Number(formData.price);
+    const stock = Number(formData.stock);
+    if (!Number.isFinite(price) || price < 0.01 || price > 1000000000) {
+      setError('Enter a valid price in PKR greater than zero.');
+      return;
+    }
+    if (!Number.isInteger(stock) || stock < 0) {
+      setError('Stock must be a non-negative whole number.');
+      return;
+    }
+    if (!image) {
+      setError('Choose a product image.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+    try {
+      await createProduct({
+        ...formData,
+        price,
+        stock,
+        image,
+      });
+      await dispatch(loadProducts());
+      router.push('/supplier/products');
+    } catch (requestError) {
+      setError(getErrorMessage(requestError, 'Unable to create product.'));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -50,7 +109,7 @@ export default function SupplierAddProductPage() {
           className="mb-8"
         >
           <Link
-            href="/dashboard"
+            href="/supplier/dashboard"
             className="flex items-center gap-2 text-primary hover:underline mb-6"
           >
             <FiArrowLeft className="w-5 h-5" />
@@ -71,10 +130,38 @@ export default function SupplierAddProductPage() {
             {/* Image Upload */}
             <motion.div variants={itemVariants}>
               <label className="block text-sm font-medium mb-3">Product Image</label>
-              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition cursor-pointer">
-                <FiImage className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">Drag and drop your image or click to browse</p>
-              </div>
+              <label className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition cursor-pointer block">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="sr-only"
+                  onChange={(event) => {
+                    const selectedImage = event.target.files?.[0] ?? null;
+                    if (selectedImage && !['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(selectedImage.type)) {
+                      setError('Choose a JPG, PNG, WebP, or GIF image.');
+                      setImage(null);
+                      event.target.value = '';
+                      return;
+                    }
+                    if (selectedImage && selectedImage.size > 5 * 1024 * 1024) {
+                      setError('Product images must be 5 MB or smaller.');
+                      setImage(null);
+                      event.target.value = '';
+                      return;
+                    }
+                    setError('');
+                    setImage(selectedImage);
+                  }}
+                />
+                {imagePreview ? (
+                  <img src={imagePreview} alt="Product image preview" className="mx-auto mb-3 max-h-48 rounded-lg object-contain" />
+                ) : (
+                  <FiImage className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
+                )}
+                <p className="text-sm text-muted-foreground">
+                  {image?.name ?? 'Click to choose a product image'}
+                </p>
+              </label>
             </motion.div>
 
             {/* Product Name */}
@@ -102,27 +189,26 @@ export default function SupplierAddProductPage() {
                 className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
               >
                 <option value="">Select a category</option>
-                <option value="jackets">Jackets</option>
-                <option value="dresses">Dresses</option>
-                <option value="shoes">Shoes</option>
-                <option value="sweaters">Sweaters</option>
-                <option value="accessories">Accessories</option>
-                <option value="shirts">Shirts</option>
+                {categories.map((category) => (
+                  <option key={category._id} value={category.name}>{category.name}</option>
+                ))}
               </select>
             </motion.div>
 
             {/* Price and Stock Grid */}
             <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Price</label>
+                <label className="block text-sm font-medium mb-2">Price (PKR)</label>
                 <div className="flex items-center gap-2 px-4 py-3 border border-border rounded-lg focus-within:ring-2 focus-within:ring-primary">
-                  <FiDollarSign className="text-muted-foreground" />
+                  <span className="text-xs font-semibold text-muted-foreground">PKR</span>
                   <input
                     type="number"
                     name="price"
                     value={formData.price}
                     onChange={handleChange}
                     placeholder="0.00"
+                    min="0.01"
+                    max="1000000000"
                     step="0.01"
                     required
                     className="flex-1 focus:outline-none bg-transparent"
@@ -139,6 +225,8 @@ export default function SupplierAddProductPage() {
                     value={formData.stock}
                     onChange={handleChange}
                     placeholder="0"
+                    min="0"
+                    step="1"
                     required
                     className="flex-1 focus:outline-none bg-transparent"
                   />
@@ -161,16 +249,18 @@ export default function SupplierAddProductPage() {
             </motion.div>
 
             {/* Buttons */}
+            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
             <motion.div variants={itemVariants} className="flex gap-4">
               <button
                 type="submit"
+                disabled={isSubmitting || categories.length === 0}
                 className="flex-1 px-8 py-3 bg-primary text-white rounded-lg hover:opacity-90 transition font-semibold flex items-center justify-center gap-2"
               >
                 <FiPlus className="w-5 h-5" />
-                Add Product
+                {isSubmitting ? 'Saving...' : 'Add Product'}
               </button>
               <Link
-                href="/dashboard"
+                href="/supplier/products"
                 className="flex-1 px-8 py-3 border border-border rounded-lg hover:bg-secondary transition font-semibold text-center"
               >
                 Cancel
